@@ -1,0 +1,12 @@
+version = 0.1
+[innovation]
+[innovation.deploy]
+[innovation.deploy.parameters]
+stack_name = "rkeit-test"
+s3_prefix = "rkeit-test"
+s3_bucket = "rkeit-to-delete"
+region = "ap-southeast-2"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+image_repositories = []

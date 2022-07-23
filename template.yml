@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Versent Created Stepfunctions for interacting with Stax
+  @richardkeit for questions
+
+Parameters:
+  PythonLoggingLevel:
+    Type: String
+    Description: Python logging level for Lambda functions
+    Default: INFO
+    AllowedValues:
+      - INFO
+      - DEBUG
+      - WARNING
+      - ERROR
+      - CRITICAL
+
+Resources:
+  TaskWatcherStateMachine:
+    Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
+    Properties:
+      DefinitionUri: statemachine/task_watcher.asl.json
+      DefinitionSubstitutions:
+        ValidateInputLambdaArn: !GetAtt ValidateInputLambda.Arn
+        RetrieveStaxTaskStatusArn: !GetAtt RetrieveStaxTaskStatus.Arn
+        FeedbackLambdaArn: !GetAtt FeedbackLambda.Arn
+      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ValidateInputLambda
+        - LambdaInvokePolicy:
+            FunctionName: !Ref RetrieveStaxTaskStatus
+        - LambdaInvokePolicy:
+            FunctionName: !Ref FeedbackLambda
+
+  ValidateInputLambda:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Properties:
+      Description: Function to ensure requirements met
+      CodeUri: functions/validate_input/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - x86_64
+
+
+  RetrieveStaxTaskStatus:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function to callback to required factories
+      CodeUri: functions/stax_task/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      Timeout: 120
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - x86_64
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - iam:ListAccountAliases
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - ssm:DescribeParameters
+              Resource:
+                - "*"
+            - Effect: Allow
+              Action:
+                - ssm:GetParameter
+              Resource:
+                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/*
+
+  FeedbackLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Function to callback to required factories
+      CodeUri: functions/feedback/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      Timeout: 120
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - x86_64
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - iam:ListAccountAliases
+              Resource: "*"
+            - Effect: Allow
+              Action:
+                - states:SendTaskFailure
+                - states:SendTaskHeartbeat
+                - states:SendTaskSuccess
+              Resource:
+                - "*"
+
+Outputs:
+  TaskWatcherArn:
+    Description: Stax Task Watcher Arn
+    Value: !Ref TaskWatcherStateMachine

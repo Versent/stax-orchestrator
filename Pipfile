@@ -1,0 +1,15 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+boto3-stubs = "==1.21.43"
+
+[packages]
+staxapp = {git = 'git+ssh://git@github.com/richardkeit/lib-stax-python-sdk.git',ref = 'master'}
+boto3 = "*"
+aws-lambda-powertools = "*"
+
+[requires]
+python_version = "3.9"
