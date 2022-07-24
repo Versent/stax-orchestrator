@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "stax-orchestrator"
+version = "0.1.0"
+description = "Interact with Stax to deploy workloads into your AWS Account(s)."
+authors = ["richardkeit <richard.keit@versent.com.au>", "boltdynamics <prasiddhabista102@gmail.com>"]
+license = "Apache"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+boto3 = "^1.24.36"
+aws-lambda-powertools = "^1.26.5"
+staxapp = "^1.2.0"
+
+[tool.poetry.dev-dependencies]
+boto3-stubs = "^1.24.35"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
