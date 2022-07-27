@@ -1,12 +1,12 @@
 {
-    "Comment": "State Machine for watching Stax Tasks",
-    "StartAt": "Main Branch",
+    "Comment": "State machine for watching stax tasks",
+    "StartAt": "Get Task Status",
     "States": {
-        "Feedback": {
+        "Get Task Status": {
             "Type": "Task",
-            "Comment": "Responsible for calling factories with response of status of the Stax task",
+            "Comment": "Fetch task status",
             "End": true,
-            "Resource": "${FeedbackLambdaArn}",
+            "Resource": "${GetTaskStatusArn}",
             "Retry": [
                 {
                     "ErrorEquals": [
@@ -21,95 +21,37 @@
                 }
             ]
         },
-        "Main Branch": {
-            "Type": "Parallel",
-            "Next": "Feedback",
-            "Comment": "Working branch to complete the interaction with Stax",
-            "Catch": [
-                    {
-                        "Comment": "Catch all to ensure response gets to requestor",
-                        "ErrorEquals": ["States.ALL"],
-                        "ResultPath": "$.unhandled_error",
-                        "Next": "Feedback"
-                    }
-            ],
-            "Branches": [
-                {
-                    "StartAt": "Validate Input",
-                    "States": {
-                        "Validate Input": {
-                            "Type": "Task",
-                            "Resource": "${ValidateInputLambdaArn}",
-                            "Retry": [
-                                {
-                                    "ErrorEquals": [
-                                        "Lambda.ServiceException",
-                                        "Lambda.AWSLambdaException",
-                                        "Lambda.SdkClientException",
-                                        "Lambda.Unknown"
-                                    ],
-                                    "IntervalSeconds": 15,
-                                    "MaxAttempts": 5,
-                                    "BackoffRate": 1.5
-                                }
-                            ],
-                            "Next": "Check Task Status"
-                        },
-                        "Check Task Status": {
-                            "Type": "Task",
-                            "Resource": "${RetrieveStaxTaskStatusArn}",
-                            "Retry": [
-                                {
-                                    "ErrorEquals": [
-                                        "Lambda.ServiceException",
-                                        "Lambda.AWSLambdaException",
-                                        "Lambda.SdkClientException",
-                                        "Lambda.Unknown"
-                                    ],
-                                    "IntervalSeconds": 15,
-                                    "MaxAttempts": 5,
-                                    "BackoffRate": 1.5
-                                }
-                            ],
-                            "Next": "Task completed?"
-                        },
-                        "Task completed?": {
-                            "Type": "Choice",
-                            "Choices": [
-                                {
-                                    "Or": [
-                                        {
-                                            "Variable": "$.keyThatMightNotExist",
-                                            "StringEquals": "STARTED"
-                                        },
-                                        {
-                                            "Variable": "$.keyThatMightNotExist",
-                                            "StringEquals": "PENDING"
-                                        },
-                                        {
-                                            "Variable": "$.keyThatMightNotExist",
-                                            "StringEquals": "RUNNING"
-                                        }
-                                    ],
-                                    "Next": "Wait for interval before re-checking status",
-                                    "Comment": "Picking anyone of the non-final states https://developer.au1.staxapp.cloud/#tocS_OperationStatus"
-                                }
-                            ],
-                            "Default": "End statement within branch",
-                            "Comment": "If task status is in final state or not found expected response key in event"
-                        },
-                        "Wait for interval before re-checking status": {
-                            "Type": "Wait",
-                            "TimestampPath": "$.interval_for_recheck",
-                            "Next": "Check Task Status"
-                        },
-                        "End statement within branch": {
-                            "Type": "Succeed",
-                            "Comment": "This is to allow error handling to be moved into the feedback lambda"
-                        }
-                    }
+        "Has task succeeded?": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.task_status",
+                "StringEquals": "SUCCEEDED",
+                "Next": "Success"
+              },
+              {
+                "Variable": "$.task_status",
+                "StringEquals": "PENDING",
+                "Next": "Wait for task to complete"
+              },
+              {
+                "Variable": "$.task_status",
+                "StringEquals": "RUNNING",
+                "Next": "Wait for task to complete"
                 }
-            ]
+            ],
+            "Default": "Task Failure"
+          },
+          "Wait for task to complete": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "Has task succeeded?"
+        },
+        "Success": {
+            "Type": "Succeed"
+        },
+        "Task Failure": {
+            "Type": "Fail"
         }
     }
 }

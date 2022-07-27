@@ -1,12 +1,65 @@
 import logging
+from dataclasses import dataclass
+from enum import Enum
 from os import environ
+from typing import Optional
+from uuid import UUID
+
 logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 
-def lambda_handler(event, context) -> dict:
-    if "task_id" not in event:
-        raise Exception("task_id is required")
-    if "send_heartbeats" in event and not isinstance(event["send_heartbeats"], list):
-        raise Exception("send_heartbeats must be a list")
 
+class WorkloadOperation(Enum):
+    DEPLOY = "deploy"
+    UPDATE = "update"
+
+
+@dataclass(frozen=True, order=True)
+class WorkloadEvent:
+    aws_account_id: int
+    aws_region: str
+    catalogue_id: UUID
+    operation: WorkloadOperation
+    workload_name: str
+    workload_parameters: Optional[dict] = None
+    workload_tags: Optional[dict] = None
+
+
+class MissingRequiredInput(Exception):
+    """Raised when required user inputs are not present"""
+
+
+def lambda_handler(event, _) -> WorkloadEvent.__dict__:
+    """Validate input to workload state machine
+
+    Args:
+        event (dict): Details about the workload to be deployed or updated
+
+    Returns:
+        WorkloadEvent: Details about the catalogue, workload and account
+
+    Raises:
+        KeyError: Raised when required event arguments are not present
+    """
+    workload_kwargs = {}
+
+    try:
+        workload_kwargs = {
+            "aws_account_id": event["aws_account_id"],
+            "aws_region": event["aws_region"],
+            "catalogue_id": event["catalogue_id"],
+            "operation": event["operation"],
+            "workload_name": event["workload_name"],
+        }
+
+    except KeyError as missing_key:
+        raise MissingRequiredInput(f"Missing required input key: {missing_key}")
+
+    if "workload_parameters" in event:
+        workload_kwargs["workload_parameters"] = event["workload_parameters"]
+
+    if "workload_tags" in event:
+        workload_kwargs["workload_tags"] = event["workload_tags"]
+
+    event["workload_payload"] = WorkloadEvent(**workload_kwargs).__dict__
 
     return event

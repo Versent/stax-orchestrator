@@ -17,99 +17,139 @@ Parameters:
       - CRITICAL
 
 Resources:
-  TaskWatcherStateMachine:
-    Type: AWS::Serverless::StateMachine # More info about State Machine Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-statemachine.html
+  WorkloadDeployerStateMachine:
+    Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: statemachine/task_watcher.asl.json
+      DefinitionUri: statemachine/workload_deployer.asl.json
+      Tracing:
+        Enabled: true
       DefinitionSubstitutions:
         ValidateInputLambdaArn: !GetAtt ValidateInputLambda.Arn
-        RetrieveStaxTaskStatusArn: !GetAtt RetrieveStaxTaskStatus.Arn
-        FeedbackLambdaArn: !GetAtt FeedbackLambda.Arn
-      Policies: # Find out more about SAM policy templates: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        CreateWorkloadLambdaArn: !GetAtt CreateWorkloadLambda.Arn
+        TaskFactoryArn: !GetAtt TaskWatcherStateMachine.Arn
+      Role: !GetAtt WorkloadDeployerStateMachineRole.Arn
+
+  WorkloadDeployerStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WorkloadDeployerStateMachinePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt ValidateInputLambda.Arn
+                  - !GetAtt CreateWorkloadLambda.Arn
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource:
+                  - !Ref TaskWatcherStateMachine
+              - Effect: Allow
+                Action:
+                - events:PutTargets
+                - events:PutRule
+                - events:DescribeRule
+                Resource:
+                - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+
+  TaskWatcherStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachine/task_watcher.asl.json
+      Tracing:
+        Enabled: true
+      DefinitionSubstitutions:
+        GetTaskStatusArn: !GetAtt GetTaskStatusLambda.Arn
+      Policies:
         - LambdaInvokePolicy:
-            FunctionName: !Ref ValidateInputLambda
-        - LambdaInvokePolicy:
-            FunctionName: !Ref RetrieveStaxTaskStatus
-        - LambdaInvokePolicy:
-            FunctionName: !Ref FeedbackLambda
+            FunctionName: !Ref GetTaskStatusLambda
 
   ValidateInputLambda:
-    Type: AWS::Serverless::Function # More info about Function Resource: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html
+    Type: AWS::Serverless::Function
     Properties:
-      Description: Function to ensure requirements met
+      Description: Validate user input required to create/update workloads
       CodeUri: functions/validate_input/
       Handler: app.lambda_handler
       Runtime: python3.9
+      MemorySize: 128
       Tracing: Active
+      Layers:
+        - !Ref StaxLibLayer
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
       Architectures:
-        - x86_64
+        - arm64
 
-
-  RetrieveStaxTaskStatus:
+  CreateWorkloadLambda:
     Type: AWS::Serverless::Function
     Properties:
       Description: Function to callback to required factories
-      CodeUri: functions/stax_task/
+      CodeUri: functions/create_workload/
       Handler: app.lambda_handler
       Runtime: python3.9
       Tracing: Active
-      Timeout: 120
+      MemorySize: 256
+      Layers:
+        - !Ref StaxLibLayer
+      Timeout: 60
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
       Architectures:
-        - x86_64
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - iam:ListAccountAliases
-              Resource: "*"
-            - Effect: Allow
-              Action:
-                - ssm:DescribeParameters
-              Resource:
-                - "*"
-            - Effect: Allow
-              Action:
-                - ssm:GetParameter
-              Resource:
-                - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/*
+        - arm64
 
-  FeedbackLambda:
+  GetTaskStatusLambda:
     Type: AWS::Serverless::Function
     Properties:
-      Description: Function to callback to required factories
-      CodeUri: functions/feedback/
+      Description: Validate user input required to create/update workloads
+      CodeUri: functions/get_task_status/
       Handler: app.lambda_handler
       Runtime: python3.9
+      MemorySize: 128
       Tracing: Active
-      Timeout: 120
+      Layers:
+        - !Ref StaxLibLayer
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
       Architectures:
-        - x86_64
-      Policies:
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - iam:ListAccountAliases
-              Resource: "*"
-            - Effect: Allow
-              Action:
-                - states:SendTaskFailure
-                - states:SendTaskHeartbeat
-                - states:SendTaskSuccess
-              Resource:
-                - "*"
+        - arm64
+
+  StaxLibLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: stax-orchestrator-shared-lib-layer
+      ContentUri: lambda_layer
+      CompatibleRuntimes:
+        - python3.9
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: python3.9
+      BuildArchitecture: arm64
+
+  StaxLibLayerPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref StaxLibLayer
+      Principal: !Ref AWS::AccountId
 
 Outputs:
+  WorkloadDeployerArn:
+    Description: Stax workload deployer arn
+    Value: !Ref WorkloadDeployerStateMachine
+
   TaskWatcherArn:
-    Description: Stax Task Watcher Arn
+    Description: Stax task watcher arn
     Value: !Ref TaskWatcherStateMachine

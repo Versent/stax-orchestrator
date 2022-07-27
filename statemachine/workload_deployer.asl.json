@@ -1,0 +1,69 @@
+
+{
+    "Comment": "State machine for creating stax workloads.",
+    "StartAt": "Validate Input",
+    "States": {
+        "Validate Input": {
+            "Type": "Task",
+            "Comment": "Validate input for required attributes.",
+            "Next": "Create Workload",
+            "Resource": "${ValidateInputLambdaArn}",
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 15,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1.5
+                }
+            ]
+        },
+        "Create Workload": {
+            "Type": "Task",
+            "Comment": "Trigger Stax Api to create a workload.",
+            "Next": "Trigger Task Factory",
+            "Resource": "${CreateWorkloadLambdaArn}",
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 15,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1.5
+                }
+            ]
+        },
+        "Trigger Task Factory": {
+            "Type": "Task",
+            "Comment": "Trigger task factory to monitor and report on task status.",
+            "TimeoutSeconds": 7200,
+            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+            "Parameters": {
+                "Input.$": "$",
+                "StateMachineArn":"${TaskFactoryArn}"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.Unknown"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 5,
+                "BackoffRate": 1
+              }
+            ],
+            "End": true
+          }
+    }
+}
