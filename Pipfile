@@ -12,6 +12,7 @@ isort = "*"
 staxapp = "*"
 boto3 = "*"
 aws-lambda-powertools = "*"
+aws_xray_sdk = "*"
 
 [requires]
 python_version = "3.9"

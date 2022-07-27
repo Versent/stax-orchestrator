@@ -5,7 +5,12 @@ from os import environ
 from typing import Optional
 from uuid import UUID
 
+from aws_xray_sdk.core import patch_all, xray_recorder
+
 logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
+
+xray_recorder.configure(service="StaxOrchestrator:ValidateInput")
+patch_all()
 
 
 class WorkloadOperation(Enum):
@@ -18,7 +23,6 @@ class WorkloadEvent:
     aws_account_id: int
     aws_region: str
     catalogue_id: UUID
-    operation: WorkloadOperation
     workload_name: str
     workload_parameters: Optional[dict] = None
     workload_tags: Optional[dict] = None
@@ -47,7 +51,6 @@ def lambda_handler(event, _) -> WorkloadEvent.__dict__:
             "aws_account_id": event["aws_account_id"],
             "aws_region": event["aws_region"],
             "catalogue_id": event["catalogue_id"],
-            "operation": event["operation"],
             "workload_name": event["workload_name"],
         }
 
@@ -60,6 +63,9 @@ def lambda_handler(event, _) -> WorkloadEvent.__dict__:
     if "workload_tags" in event:
         workload_kwargs["workload_tags"] = event["workload_tags"]
 
-    event["workload_payload"] = WorkloadEvent(**workload_kwargs).__dict__
+    if event["operation"] == "deploy":
+        event["workload_create_payload"] = WorkloadEvent(**workload_kwargs).__dict__
+    else:
+        event["workload_update_payload"] = WorkloadEvent(**workload_kwargs).__dict__
 
     return event

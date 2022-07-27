@@ -32,8 +32,6 @@ Resources:
   WorkloadDeployerStateMachineRole:
     Type: AWS::IAM::Role
     Properties:
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -41,6 +39,8 @@ Resources:
             Principal:
               Service: !Sub states.${AWS::Region}.amazonaws.com
             Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref StaxOrchestratorSfnPolicy
       Policies:
         - PolicyName: WorkloadDeployerStateMachinePolicy
           PolicyDocument:
@@ -54,13 +54,6 @@ Resources:
                 Action: states:StartExecution
                 Resource:
                   - !Ref TaskWatcherStateMachine
-              - Effect: Allow
-                Action:
-                - events:PutTargets
-                - events:PutRule
-                - events:DescribeRule
-                Resource:
-                - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
 
   TaskWatcherStateMachine:
     Type: AWS::Serverless::StateMachine
@@ -70,9 +63,28 @@ Resources:
         Enabled: true
       DefinitionSubstitutions:
         GetTaskStatusArn: !GetAtt GetTaskStatusLambda.Arn
+      Role: !GetAtt TaskWatcherStateMachineRole.Arn
+
+  TaskWatcherStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref StaxOrchestratorSfnPolicy
       Policies:
-        - LambdaInvokePolicy:
-            FunctionName: !Ref GetTaskStatusLambda
+        - PolicyName: TaskWatcherStateMachinePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt GetTaskStatusLambda.Arn
 
   ValidateInputLambda:
     Type: AWS::Serverless::Function
@@ -88,8 +100,11 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
+          PYTHONPATH: /opt
       Architectures:
         - arm64
+      Policies:
+        - AWSXRayDaemonWriteAccess
 
   CreateWorkloadLambda:
     Type: AWS::Serverless::Function
@@ -106,8 +121,12 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
+          PYTHONPATH: /opt
       Architectures:
         - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
 
   GetTaskStatusLambda:
     Type: AWS::Serverless::Function
@@ -123,8 +142,12 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
+          PYTHONPATH: /opt
       Architectures:
         - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
 
   StaxLibLayer:
     Type: AWS::Serverless::LayerVersion
@@ -144,6 +167,62 @@ Resources:
       Action: lambda:GetLayerVersion
       LayerVersionArn: !Ref StaxLibLayer
       Principal: !Ref AWS::AccountId
+
+  StaxOrchestratorLambdaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Stax Orchestrator Managed Policy for lambdas to use with AWS Resources.
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource:
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key/secret
+
+  StaxOrchestratorSfnPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Stax Orchestrator Managed Policy for step functions to use with AWS Resources.
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource:
+            - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+              - xray:GetSamplingRules
+              - xray:GetSamplingTargets
+              - xray:GetSamplingStatisticSummaries
+            Resource:
+              - '*'
+
+  ValidateInputLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ValidateInputLambda}
+      RetentionInDays: 60
+
+  CreateWorkloadLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${CreateWorkloadLambda}
+      RetentionInDays: 60
+
+  GetTaskStatusLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${GetTaskStatusLambda}
+      RetentionInDays: 60
 
 Outputs:
   WorkloadDeployerArn:

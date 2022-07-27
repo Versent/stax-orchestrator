@@ -1,30 +1,19 @@
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from os import environ
 from typing import Optional
 from uuid import UUID, uuid4
 
 import boto3
+from aws_lambda_powertools.utilities import parameters
+from aws_xray_sdk.core import patch_all, xray_recorder
 from staxapp.config import Config as StaxConfig
 from staxapp.openapi import StaxClient
 
-logging.getLogger().setLevel(environ.get("LOGLEVEL", logging.INFO))
+logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 
-
-def get_ssm_parameter(paramter_path: str, boto_client: boto3.client = None) -> str:
-    """Fetch parameters from Systems Manager Parameter Store
-    Args:
-        parameter_path (str): The complete SSM parameter path to fetch the value from (e.g., /stax/lambda/function/arn)
-        boto_client (boto3.client, optional): Boto3 client to use to fetch the parameter, useful when fetching cross account parameters.
-    """
-    if not boto_client:
-        boto_client = boto3.client("ssm")
-
-    try:
-        response = boto_client.get_parameter(Name=paramter_path, WithDecryption=True)
-        return response["Parameter"]["Value"]
-    except (boto_client.exceptions.ParameterNotFound, KeyError):
-        raise ValueError(f"Unable to fetch ssm parameter {paramter_path}")
+xray_recorder.configure(service="StaxOrchestrator:Libs")
+patch_all()
 
 
 def get_stax_client(client_type: str) -> StaxClient:
@@ -32,8 +21,13 @@ def get_stax_client(client_type: str) -> StaxClient:
     Args:
         client_type (str): Type of stax client to instantiate (for e.g, workloads)
     """
-    StaxConfig.access_key = get_ssm_parameter("/orchestrator/stax/access/key")
-    StaxConfig.secret_key = get_ssm_parameter("/orchestrator/stax/access/key/secret")
+    ssm_provider = parameters.SSMProvider()
+    StaxConfig.access_key = ssm_provider.get(
+        "/orchestrator/stax/access/key", max_age=21600, decrypt=True
+    )
+    StaxConfig.secret_key = ssm_provider.get(
+        "/orchestrator/stax/access/key/secret", max_age=21600, decrypt=True
+    )
 
     return StaxClient(client_type)
 
@@ -44,7 +38,7 @@ class StaxOrchestrator:
     workload_client: StaxClient = get_stax_client("workloads")
     tasks_client: StaxClient = get_stax_client("tasks")
 
-    def get_catalogue_hash(self):
+    def get_catalogue_hash(self) -> str:
         return uuid4().hex[:7]
 
     def create_catalogue(
@@ -91,7 +85,7 @@ class StaxOrchestrator:
             Tags=workload_tags,
         )
 
-    def get_parameters_dict(self, workload_parameters):
+    def get_parameters_dict(self, workload_parameters: dict) -> list:
         parameters_list = []
         for key, value in workload_parameters.items():
             parameters_list.append({"Key": key, "Value": value})
