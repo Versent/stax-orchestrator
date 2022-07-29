@@ -13,11 +13,11 @@ patch_all()
 
 def lambda_handler(event, _) -> dict:
     stax_orchestrator = StaxOrchestrator()
-    task_status = stax_orchestrator.get_task_status(
-        event["create_workload_response"]["task_id"]
-    )
-
-    logging.debug(f"task_status: {task_status}")
-    event["task_status"] = task_status
-
+    logging.info(f"EVENT: {event}")
+    event["task_info"] = "NOTFOUND"
+    try:
+        event["task_info"] = stax_orchestrator.get_task_status(event["task_id"])
+    except:
+        logging.warning(f"Task with ID {event['task_id']} not found!")
+    logging.info(f"task_status: {event['task_info']['Status']}")
     return event

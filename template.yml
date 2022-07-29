@@ -62,7 +62,7 @@ Resources:
       Tracing:
         Enabled: true
       DefinitionSubstitutions:
-        GetTaskStatusArn: !GetAtt GetTaskStatusLambda.Arn
+        GetTaskStatusLambdaArn: !GetAtt GetTaskStatusLambda.Arn
       Role: !GetAtt TaskWatcherStateMachineRole.Arn
 
   TaskWatcherStateMachineRole:
@@ -104,6 +104,7 @@ Resources:
       Architectures:
         - arm64
       Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
         - AWSXRayDaemonWriteAccess
 
   CreateWorkloadLambda:

@@ -43,13 +43,8 @@ build-app: prepare-lambda-layer-dir ## Use docker and sam to build the app local
 	sam build --use-container
 .PHONY: build-app
 
-generate-requirements-txt: ## Generate requirements.txt with required dependencies
-	pipenv requirements > functions/create_workload/requirements.txt
-	pipenv requirements > functions/get_task_status/requirements.txt
-.PHONY: generate-requirements-txt
-
 run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a docker container locally
-	sam local invoke CreateWorkloadLambda -e events/create_workload.json
+	sam local invoke CreateWorkloadLambda -e events/create_workload_innovation.json
 .PHONY: run-create-workload-lambda-locally
 
 clean: ## Cleanup local artifacts
@@ -64,5 +59,5 @@ deploy-stax-orchestrator: ## Deploy Stax Orchestrator
 		--tags "orchestrator-stax:branch=$(GIT_BRANCH)" "orchestrator-stax:version=$(GIT_HASH)" \
 		--template-file template.yml \
 		--s3-bucket $(ARTIFACT_BUCKET_NAME)
-	@make clean
+	# @make clean
 .PHONY: deploy-stax-orchestrator

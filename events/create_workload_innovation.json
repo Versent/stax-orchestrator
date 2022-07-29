@@ -1,0 +1,12 @@
+{
+    "aws_account_id": "a97d2482-7c0e-4807-96ee-b7acbaf4c49b",
+    "aws_region": "ap-southeast-2",
+    "catalogue_id": "b3437e3b-55e3-4060-9dec-042f18dcf789",
+    "workload_name": "orchestrator-stax-demo-vpc",
+    "workload_parameters": {
+        "Param1": "Value1"
+    },
+    "workload_tags": {
+        "Tag1": "Value1"
+    }
+}

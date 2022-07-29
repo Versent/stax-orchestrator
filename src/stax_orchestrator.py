@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from os import environ
 from typing import Optional
 from uuid import UUID, uuid4
@@ -14,6 +15,25 @@ logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 
 xray_recorder.configure(service="StaxOrchestrator:Libs")
 patch_all()
+
+
+class WorkloadOperation(Enum):
+    DEPLOY = "deploy"
+    UPDATE = "update"
+
+
+@dataclass(frozen=True, order=True)
+class WorkloadEvent:
+    aws_account_id: int
+    aws_region: str
+    catalogue_id: UUID
+    workload_name: str
+    workload_parameters: Optional[dict] = None
+    workload_tags: Optional[dict] = None
+
+
+class MissingRequiredInput(Exception):
+    """Raised when required user inputs are not present"""
 
 
 def get_stax_client(client_type: str) -> StaxClient:
@@ -74,16 +94,22 @@ class StaxOrchestrator:
         workload_parameters: list = None,
         workload_tags: dict = None,
     ) -> dict:
-        workload_parameters = self.get_parameters_dict(workload_parameters)
+        create_workload_payload = {
+            "Name": workload_name,
+            "CatalogueId": catalogue_id,
+            "AccountId": aws_account_id,
+            "Region": aws_region,
+        }
 
-        return self.workload_client.CreateWorkload(
-            Name=workload_name,
-            CatalogueId=catalogue_id,
-            AccountId=aws_account_id,
-            Region=aws_region,
-            Parameters=workload_parameters,
-            Tags=workload_tags,
-        )
+        if workload_parameters:
+            create_workload_payload["Parameters"] = self.get_parameters_dict(
+                workload_parameters
+            )
+
+        if workload_tags:
+            create_workload_payload["Tags"] = workload_tags
+
+        return self.workload_client.CreateWorkload(**create_workload_payload)
 
     def get_parameters_dict(self, workload_parameters: dict) -> list:
         parameters_list = []
@@ -91,13 +117,16 @@ class StaxOrchestrator:
             parameters_list.append({"Key": key, "Value": value})
         return parameters_list
 
-    def get_task_status(self, task_id: UUID) -> str:
+    def get_task_status(self, task_id: UUID) -> dict:
         return self.tasks_client.ReadTask(task_id=task_id)
 
-    def get_workloads(self):
+    def get_workloads(self) -> dict:
         return self.workload_client.ReadWorkloads()
 
-    def update_workload(self, workload_id: UUID, catalogue_version_id: UUID):
+    def delete_workload(self, workload_id: UUID) -> dict:
+        return self.workload_client.DeleteWorkload(workload_id=workload_id)
+
+    def update_workload(self, workload_id: UUID, catalogue_version_id: UUID) -> dict:
         return self.workload_client.UpdateWorkload(
             workload_id=workload_id, catalogue_version_id=catalogue_version_id
         )

@@ -14,8 +14,4 @@ patch_all()
 def lambda_handler(event, _) -> dict:
     """Create Stax Workloads Lambda Handler"""
     stax_orchestrator = StaxOrchestrator()
-    event["create_workload_response"] = stax_orchestrator.create_workload(
-        **event["workload_create_payload"]
-    )
-
-    return event
+    return stax_orchestrator.create_workload(**event)

@@ -5,8 +5,8 @@
         "Get Task Status": {
             "Type": "Task",
             "Comment": "Fetch task status",
-            "End": true,
-            "Resource": "${GetTaskStatusArn}",
+            "Next": "Has task succeeded?",
+            "Resource": "${GetTaskStatusLambdaArn}",
             "Retry": [
                 {
                     "ErrorEquals": [
@@ -24,20 +24,25 @@
         "Has task succeeded?": {
             "Type": "Choice",
             "Choices": [
-              {
-                "Variable": "$.task_status",
-                "StringEquals": "SUCCEEDED",
-                "Next": "Success"
-              },
-              {
-                "Variable": "$.task_status",
-                "StringEquals": "PENDING",
-                "Next": "Wait for task to complete"
-              },
-              {
-                "Variable": "$.task_status",
-                "StringEquals": "RUNNING",
-                "Next": "Wait for task to complete"
+                {
+                    "Variable": "$.task_info.Status",
+                    "StringEquals": "SUCCEEDED",
+                    "Next": "Success"
+                },
+                {
+                    "Variable": "$.task_info.Status",
+                    "StringEquals": "PENDING",
+                    "Next": "Wait for task to complete"
+                },
+                {
+                    "Variable": "$.task_info.Status",
+                    "StringEquals": "RUNNING",
+                    "Next": "Wait for task to complete"
+                },
+                {
+                    "Variable": "$.task_info.Status",
+                    "StringEquals": "NOTFOUND",
+                    "Next": "Task Not Found"
                 }
             ],
             "Default": "Task Failure"
@@ -48,6 +53,9 @@
             "Next": "Has task succeeded?"
         },
         "Success": {
+            "Type": "Succeed"
+        },
+        "Task Not Found": {
             "Type": "Succeed"
         },
         "Task Failure": {

@@ -27,6 +27,9 @@
             "Comment": "Trigger Stax Api to create a workload.",
             "Next": "Trigger Task Factory",
             "Resource": "${CreateWorkloadLambdaArn}",
+            "ResultSelector": {
+                "create_workload_response.$": "$.Detail"
+            },
             "Retry": [
                 {
                     "ErrorEquals": [
@@ -47,7 +50,10 @@
             "TimeoutSeconds": 7200,
             "Resource": "arn:aws:states:::states:startExecution.sync:2",
             "Parameters": {
-                "Input.$": "$",
+                "Input": {
+                    "task_id.$": "$.create_workload_response.Workload.TaskId",
+                    "workload_id.$": "$.create_workload_response.Workload.WorkloadId"
+                },
                 "StateMachineArn":"${TaskFactoryArn}"
             },
             "Retry": [

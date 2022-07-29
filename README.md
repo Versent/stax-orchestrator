@@ -29,7 +29,7 @@ If you prefer to use an integrated development environment (IDE) to build and te
 
 The AWS Toolkit for VS Code includes full support for state machine visualization, enabling you to visualize your state machine in real time as you build. The AWS Toolkit for VS Code includes a language server for Amazon States Language, which lints your state machine definition to highlight common errors, provides auto-complete support, and code snippets for each state, enabling you to build state machines faster.
 
-## Deploy the sample application
+## Deploy Stax Orchestrator
 
 The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda.
 
@@ -42,27 +42,20 @@ To use the SAM CLI, you need the following tools:
 To build and deploy your application for the first time, run the following in your shell:
 
 ```bash
-sam build --use-container
-sam deploy --guided
+make build-app deploy-stax-orchestrator
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
-
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
+Sam will build the source of your application and deploy Stax Orchestrator to AWS.
 
 ## Use the SAM CLI to build locally
 
-Build the Lambda functions in your application with the `sam build --use-container` command.
+Build the Lambda functions in your application with the `sam build --use-container` command,
 
-```bash
-stax-orchestrator$ sam build --use-container
+```
+stax-orchestrator$ make build-app
 ```
 
-The SAM CLI installs dependencies defined in `functions/*/requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
+The SAM CLI installs dependencies defined in `requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
 
 ## Add a resource to your application
 The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
@@ -105,3 +98,12 @@ aws cloudformation delete-stack --stack-name stax-orchestrator
 See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
 
 Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+
+
+### Stax Deployment Bucket
+
+Inorder to use Stax to deploy workloads, we need to use s3 bucket accessible by Stax to store our artifacts, our cloudformation templates and package dependencies.
+
+Stax has a workload `stax-deployment-bucket` deployed in every installation that we can deploy to then start using the s3 bucket. Follow Stax's [guide](https://support.stax.io/hc/en-us/articles/4450989147919-Add-a-Workload-to-the-Workload-Catalog#:~:text=If%20you%20need%20to%20upload%20artifacts%20that%20are%20referenced%20by%20your%20Manifest%2C%20such%20as%20CloudFormation%20templates%2C%20you%20must%3A) to get started.
+
+After you deploy the workload, store the name of the bucket in a Ssm parameter with path `/orchestrator/stax/artifact/bucket/name` which will be consumed by Stax Orchestrator.
