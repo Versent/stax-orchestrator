@@ -112,7 +112,6 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
-          PYTHONPATH: /opt
       Architectures:
         - arm64
       Policies:
@@ -134,7 +133,6 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
-          PYTHONPATH: /opt
       Architectures:
         - arm64
       Policies:
@@ -156,7 +154,6 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
-          PYTHONPATH: /opt
       Architectures:
         - arm64
       Policies:

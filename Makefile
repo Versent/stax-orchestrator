@@ -36,7 +36,7 @@ run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a 
 	sam local invoke CreateWorkloadLambda -e events/create_workload_innovation.json
 
 clean: ## Cleanup local artifacts
-	rm -rf requirements.txt lambda_layer
+	rm -rf requirements.txt lambda_layer template.packaged.yml
 
 deploy-stax-orchestrator: build-app ## Deploy Stax Orchestrator
 	$(info [+] Deploying Stax Orchestrator...)
