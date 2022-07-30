@@ -1,0 +1,4 @@
+templates:
+  - template.yml
+ignore_templates:
+  - cloudformation/vpc.yaml

@@ -38,12 +38,8 @@ def get_stax_client(client_type: str) -> StaxClient:
         client_type (str): Type of stax client to instantiate (for e.g, workloads)
     """
     ssm_provider = parameters.SSMProvider()
-    StaxConfig.access_key = ssm_provider.get(
-        "/orchestrator/stax/access/key", max_age=21600, decrypt=True
-    )
-    StaxConfig.secret_key = ssm_provider.get(
-        "/orchestrator/stax/access/key/secret", max_age=21600, decrypt=True
-    )
+    StaxConfig.access_key = ssm_provider.get("/orchestrator/stax/access/key", max_age=21600, decrypt=True)
+    StaxConfig.secret_key = ssm_provider.get("/orchestrator/stax/access/key/secret", max_age=21600, decrypt=True)
 
     return StaxClient(client_type)
 
@@ -108,9 +104,7 @@ class StaxOrchestrator:
         }
 
         if workload_parameters:
-            create_workload_payload["Parameters"] = self.get_parameters_dict(
-                workload_parameters
-            )
+            create_workload_payload["Parameters"] = self.get_parameters_dict(workload_parameters)
 
         if workload_tags:
             create_workload_payload["Tags"] = workload_tags
@@ -133,9 +127,7 @@ class StaxOrchestrator:
         return self.workload_client.DeleteWorkload(workload_id=workload_id)
 
     def update_workload(self, workload_id: UUID, catalogue_version_id: UUID) -> dict:
-        return self.workload_client.UpdateWorkload(
-            workload_id=workload_id, catalogue_version_id=catalogue_version_id
-        )
+        return self.workload_client.UpdateWorkload(workload_id=workload_id, catalogue_version_id=catalogue_version_id)
 
     def does_workload_with_name_already_exist(self, workload_name: str) -> bool:
         workloads = self.get_workloads()

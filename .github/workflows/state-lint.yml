@@ -1,0 +1,19 @@
+---
+name: AWS States Lint
+
+on: [push]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Ruby 2.6
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+      - name: Build and Test Stepfunction
+        run: |
+          gem install statelint
+          find statemachines -maxdepth 1 -type f -exec statelint {} \;
+          
