@@ -20,7 +20,7 @@ Resources:
   WorkloadDeployerStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: statemachine/workload_deployer.asl.json
+      DefinitionUri: statemachines/workload_deployer.asl.json
       Tracing:
         Enabled: true
       DefinitionSubstitutions:
@@ -58,7 +58,7 @@ Resources:
   TaskWatcherStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: statemachine/task_watcher.asl.json
+      DefinitionUri: statemachines/task_watcher.asl.json
       Tracing:
         Enabled: true
       DefinitionSubstitutions:

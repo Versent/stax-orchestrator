@@ -18,5 +18,7 @@ def lambda_handler(event, _) -> dict:
         logging.info(f"task_status: {event['task_info']['Status']}")
     except:
         logging.warning(f"Task with ID {event['task_id']} not found!")
-        raise stax_orchestrator.TaskNotFound(f"Task with ID {event['task_id']} not found!")
+        raise stax_orchestrator.TaskNotFound(
+            f"Task with ID {event['task_id']} not found!"
+        )
     return event

@@ -51,6 +51,7 @@ def get_stax_client(client_type: str) -> StaxClient:
 class MissingRequiredInput(Exception):
     """Raised when required user inputs are not present"""
 
+
 @dataclass
 class StaxOrchestrator:
 
@@ -140,8 +141,7 @@ class StaxOrchestrator:
         workloads = self.get_workloads()
 
         for workload in workloads["Workloads"]:
-            if workload["Name"] == workload_name:
+            if workload["Name"] == workload_name and workload["Status"] == "ACTIVE":
                 return True
 
         return False
-
