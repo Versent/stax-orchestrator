@@ -32,10 +32,6 @@ class WorkloadEvent:
     workload_tags: Optional[dict] = None
 
 
-class MissingRequiredInput(Exception):
-    """Raised when required user inputs are not present"""
-
-
 def get_stax_client(client_type: str) -> StaxClient:
     """Initialize and return stax client object
     Args:
@@ -52,11 +48,20 @@ def get_stax_client(client_type: str) -> StaxClient:
     return StaxClient(client_type)
 
 
+class MissingRequiredInput(Exception):
+    """Raised when required user inputs are not present"""
+
 @dataclass
 class StaxOrchestrator:
 
     workload_client: StaxClient = get_stax_client("workloads")
     tasks_client: StaxClient = get_stax_client("tasks")
+
+    class TaskNotFound(Exception):
+        """Raised when task not found in Stax"""
+
+    class WorkloadWithNameAlreadyExists(Exception):
+        """Raised when workload with same name already exists in Stax"""
 
     def get_catalogue_hash(self) -> str:
         return uuid4().hex[:7]
@@ -91,8 +96,8 @@ class StaxOrchestrator:
         catalogue_id: str,
         aws_region: str,
         aws_account_id: str,
-        workload_parameters: list = None,
-        workload_tags: dict = None,
+        workload_parameters: Optional[list] = None,
+        workload_tags: Optional[dict] = None,
     ) -> dict:
         create_workload_payload = {
             "Name": workload_name,
@@ -130,3 +135,13 @@ class StaxOrchestrator:
         return self.workload_client.UpdateWorkload(
             workload_id=workload_id, catalogue_version_id=catalogue_version_id
         )
+
+    def does_workload_with_name_already_exist(self, workload_name: str) -> bool:
+        workloads = self.get_workloads()
+
+        for workload in workloads["Workloads"]:
+            if workload["Name"] == workload_name:
+                return True
+
+        return False
+

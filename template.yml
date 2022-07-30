@@ -94,6 +94,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       MemorySize: 128
+      Timeout: 20
       Tracing: Active
       Layers:
         - !Ref StaxLibLayer
@@ -118,7 +119,7 @@ Resources:
       MemorySize: 256
       Layers:
         - !Ref StaxLibLayer
-      Timeout: 60
+      Timeout: 20
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
@@ -137,6 +138,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       MemorySize: 128
+      Timeout: 20
       Tracing: Active
       Layers:
         - !Ref StaxLibLayer

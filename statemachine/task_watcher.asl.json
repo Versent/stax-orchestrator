@@ -19,7 +19,12 @@
                     "MaxAttempts": 5,
                     "BackoffRate": 1.5
                 }
-            ]
+            ],
+            "Catch": [{
+              "ErrorEquals": [ "TaskNotFound" ],
+              "ResultPath": "$.task-not-found-error",
+              "Next": "Task Not Found"
+            }]
         },
         "Has task succeeded?": {
             "Type": "Choice",
@@ -38,11 +43,6 @@
                     "Variable": "$.task_info.Status",
                     "StringEquals": "RUNNING",
                     "Next": "Wait for task to complete"
-                },
-                {
-                    "Variable": "$.task_info.Status",
-                    "StringEquals": "NOTFOUND",
-                    "Next": "Task Not Found"
                 }
             ],
             "Default": "Task Failure"
@@ -50,7 +50,7 @@
           "Wait for task to complete": {
             "Type": "Wait",
             "Seconds": 10,
-            "Next": "Has task succeeded?"
+            "Next": "Get Task Status"
         },
         "Success": {
             "Type": "Succeed"

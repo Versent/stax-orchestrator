@@ -25,7 +25,7 @@
         "Create Workload": {
             "Type": "Task",
             "Comment": "Trigger Stax Api to create a workload.",
-            "Next": "Trigger Task Factory",
+            "Next": "Check Task Status",
             "Resource": "${CreateWorkloadLambdaArn}",
             "ResultSelector": {
                 "create_workload_response.$": "$.Detail"
@@ -44,15 +44,16 @@
                 }
             ]
         },
-        "Trigger Task Factory": {
+        "Check Task Status": {
             "Type": "Task",
             "Comment": "Trigger task factory to monitor and report on task status.",
             "TimeoutSeconds": 7200,
             "Resource": "arn:aws:states:::states:startExecution.sync:2",
             "Parameters": {
                 "Input": {
-                    "task_id.$": "$.create_workload_response.Workload.TaskId",
-                    "workload_id.$": "$.create_workload_response.Workload.WorkloadId"
+                    "workload_name.$": "$.create_workload_response.Workload.Name",
+                    "workload_id.$": "$.create_workload_response.Workload.WorkloadId",
+                    "task_id.$": "$.create_workload_response.Workload.TaskId"
                 },
                 "StateMachineArn":"${TaskFactoryArn}"
             },
