@@ -14,7 +14,7 @@ install-dependencies: ## Install project dependencies using pipenv
 shell: ## Spawn a shell in the current virtual environment
 	pipenv shell
 
-lint: ## Lint python files with black, pylint and check imports with isort
+lint: format ## Lint python files with black, pylint and check imports with isort
 	pipenv run isort --check-only --diff functions src
 	pipenv run black --check --diff functions src
 	pipenv run pylint --fail-under=10.0 functions src
@@ -38,15 +38,15 @@ run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a 
 clean: ## Cleanup local artifacts
 	rm -rf requirements.txt lambda_layer template.packaged.yml
 
-deploy-stax-orchestrator: build-app ## Deploy Stax Orchestrator
+deploy-stax-orchestrator: lint build-app package-app ## Deploy Stax Orchestrator
 	$(info [+] Deploying Stax Orchestrator...)
 	@sam deploy --no-fail-on-empty-changeset \
 		--stack-name orchestrator-stax \
 		--capabilities CAPABILITY_NAMED_IAM \
 		--tags "orchestrator-stax:branch=$(GIT_BRANCH)" "orchestrator-stax:version=$(GIT_HASH)" \
-		--template-file template.yml \
+		--template-file template.packaged.yml \
 		--s3-bucket $(ARTIFACT_BUCKET_NAME)
-	# @make clean
+	@make clean
 
 package-app: ## Package and upload application artifacts to the stax deployment bucket
 	sam package --output-template-file template.packaged.yml --s3-bucket $(ARTIFACT_BUCKET_NAME)

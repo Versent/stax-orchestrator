@@ -1,3 +1,6 @@
+"""
+    Validate input to the workload state machine
+"""
 import logging
 from os import environ
 
@@ -11,7 +14,7 @@ xray_recorder.configure(service="StaxOrchestrator:ValidateInput")
 patch_all()
 
 
-def lambda_handler(event, _) -> WorkloadEvent.__dict__:
+def lambda_handler(event: dict, _) -> WorkloadEvent.__dict__:
     """Validate input to workload state machine
 
     Args:
@@ -34,7 +37,9 @@ def lambda_handler(event, _) -> WorkloadEvent.__dict__:
         }
 
     except KeyError as missing_key:
-        raise MissingRequiredInput(f"Missing required input key: {missing_key}")
+        raise MissingRequiredInput(
+            f"Missing required input key: {missing_key} from the event payload."
+        ) from missing_key
 
     if "workload_parameters" in event:
         workload_kwargs["workload_parameters"] = event["workload_parameters"]
