@@ -1,10 +1,6 @@
 SHELL = /bin/bash
 SHELLFLAGS = -ex
 
-APP_NAME			     := stax-orchestrator
-APP_DESCRIPTION	         := 'Stax Workloads Orchestrator - Interact with Stax to deploy workloads into your AWS Account(s).'
-APP_AUTHOR		         := Versent
-APP_VERSION		         := 0.0.1
 ARTIFACT_BUCKET_NAME     := $(shell aws ssm get-parameter --name /orchestrator/stax/artifact/bucket/name --query Parameter.Value --output text)
 GIT_HASH                  ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH               ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -52,5 +48,10 @@ deploy-stax-orchestrator: build-app ## Deploy Stax Orchestrator
 		--s3-bucket $(ARTIFACT_BUCKET_NAME)
 	# @make clean
 
-.PHONY: clean build-app deploy-stax-orchestrator run-create-workload-lambda-locally prepare-lambda-layer-dir format lint shell install-dependencies help publish-app
+package-app: ## Package and upload application artifacts to the stax deployment bucket
+	sam package --output-template-file template.packaged.yml --s3-bucket $(ARTIFACT_BUCKET_NAME)
 
+publish-app: ## Publish Stax Orchestrator Application to Serverless Application Repository
+	sam publish --template template.packaged.yml --region ap-southeast-2
+
+.PHONY: clean build-app deploy-stax-orchestrator run-create-workload-lambda-locally prepare-lambda-layer-dir format lint shell install-dependencies help package-app publish-app

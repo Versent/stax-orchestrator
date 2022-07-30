@@ -1,8 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  Versent Created Stepfunctions for interacting with Stax
-  @richardkeit for questions
+Description: Step Functions to interact with Stax to deploy workloads.
 
 Parameters:
   PythonLoggingLevel:
@@ -15,6 +13,19 @@ Parameters:
       - WARNING
       - ERROR
       - CRITICAL
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: stax-orchestrator
+    Description: Stax Workloads Orchestrator - Interact with Stax to deploy workloads into your AWS Account(s).
+    Author: Versent
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: LICENSE
+    ReadmeUrl: README.md
+    Labels: ['AWS', 'Stax', 'Serverless', 'Lambda', 'StepFunction']
+    HomePageUrl: https://github.com/Versent/stax-orchestrator.git
+    SemanticVersion: 0.0.1
+    SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
 
 Resources:
   WorkloadDeployerStateMachine:
