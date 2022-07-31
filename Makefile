@@ -2,7 +2,7 @@ SHELL = /bin/bash
 SHELLFLAGS = -ex
 
 ARTIFACT_BUCKET_NAME     := $(shell aws ssm get-parameter --name /orchestrator/stax/artifact/bucket/name --query Parameter.Value --output text)
-GIT_HASH                  ?= $(shell git rev-parse --short HEAD)
+GIT_HASH                 ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH               ?= $(shell git rev-parse --abbrev-ref HEAD)
 
 help: ## Get help about Makefile commands

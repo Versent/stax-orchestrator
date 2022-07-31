@@ -51,7 +51,7 @@ class StaxOrchestrator:
         aws_region: str
         catalogue_id: UUID
         workload_name: str
-        catalogue_version_id: Optional[str] = None
+        catalogue_version_id: Optional[UUID] = None
         workload_parameters: Optional[dict] = None
         workload_tags: Optional[dict] = None
 
@@ -66,7 +66,7 @@ class StaxOrchestrator:
         """Event data containing required information to update a workload."""
 
         workload_id: UUID
-        catalogue_version_id: str
+        catalogue_version_id: UUID
 
     class WorkloadOperation(str, Enum):
         """Supported workload operations"""
@@ -138,7 +138,7 @@ class StaxOrchestrator:
         catalogue_id: UUID,
         aws_region: str,
         aws_account_id: UUID,
-        catalogue_version_id: str = None,
+        catalogue_version_id: UUID = None,
         workload_parameters: Optional[list] = None,
         workload_tags: Optional[dict] = None,
     ) -> dict:
