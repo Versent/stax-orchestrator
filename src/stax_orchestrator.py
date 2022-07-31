@@ -273,6 +273,9 @@ class StaxOrchestrator:
             "workload_name": event["workload_name"],
         }
 
+        if "catalogue_version_id" in event:
+            workload_kwargs["catalogue_version_id"] = event["workload_parameters"]
+
         if "workload_parameters" in event:
             workload_kwargs["workload_parameters"] = event["workload_parameters"]
 
