@@ -1,71 +1,87 @@
-# stax-orchestrator
+# Stax Orchestrator
 
-This project contains source code and supporting files for a serverless application that you can deploy with the SAM CLI. It includes the following files and folders:
+This application deploys step functions into your account that you can use to interact with [Stax](https://www.stax.io/) to CUD (create-update-delete) workloads in your AWS Account(s).
 
-- functions - Code for the application's Lambda functions to check the value of, buy, or sell shares of a stock.
+Stax provides an open source python [SDK](https://github.com/stax-labs/lib-stax-python-sdk) for use within projects to interact with Stax. We leverage the SDK to create and monitor workload operations within the serverless application.
+
+This project contains source code and supporting files for Stax Orchestrator Serverless Application that you can deploy with the SAM CLI. It includes the following files and folders:
+
+- functions - Python code for the application's lambda functions to deploy workload and monitor the status of the workload task.
 - statemachines - Definition for the state machine that orchestrates the stock trading workflow.
-- tests - Unit tests for the Lambda functions' application code.
+- cloudformation - Sample workload templates.
 - template.yaml - A template that defines the application's AWS resources.
+- Makefile - Run shell commands using make targets for a smooth developer experience.
+- events - Json files containing test data to run against your application code locally.
+- assets - Diagrams and other assets.
 
-This application creates a mock stock trading workflow which runs on a pre-defined schedule (note that the schedule is disabled by default to avoid incurring charges). It demonstrates the power of Step Functions to orchestrate Lambda functions and other AWS resources to form complex and robust workflows, coupled with event-driven development using Amazon EventBridge.
+## Stax Orchestrator Workflow Diagram
 
-AWS Step Functions lets you coordinate multiple AWS services into serverless workflows so you can build and update apps quickly. Using Step Functions, you can design and run workflows that stitch together services, such as AWS Lambda, AWS Fargate, and Amazon SageMaker, into feature-rich applications.
+![Stax Orchestrator Workflow Diagram](assets/StaxOrchestrator.png)
 
-The application uses several AWS resources, including Step Functions state machines, Lambda functions and an EventBridge rule trigger. These resources are defined in the `template.yaml` file in this project. You can update the template to add AWS resources through the same deployment process that updates your application code.
+## Resources
 
-If you prefer to use an integrated development environment (IDE) to build and test the Lambda functions within your application, you can use the AWS Toolkit. The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI to build and deploy serverless applications on AWS. The AWS Toolkit also adds a simplified step-through debugging experience for Lambda function code. See the following links to get started:
+This serverless application deploys the following resources in your AWS Account,
 
-* [CLion](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [GoLand](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [IntelliJ](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [WebStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [Rider](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PhpStorm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [PyCharm](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [RubyMine](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [DataGrip](https://docs.aws.amazon.com/toolkit-for-jetbrains/latest/userguide/welcome.html)
-* [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
-* [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
+* Workload Step Function - Creates a Stax workload and triggers Task Watcher Step Function to monitor the workload deployment status.
+    * Validate Input Lambda - Validates user provided input.
+    * Create Workload Lambda - Invokes Stax Api to create a workload.
+    * Update Workload Lambda - Invokes Stax Api to create a workload.
+    * Delete Workload Lambda - Invokes Stax Api to delete a workload.
+* Task Watcher Step Function - Monitors the lifecycle of a workload task in progress and reports with a success/failure to Create Workload Steop Function.
+    * Get Task Status Lambda - Invokes Stax Api to get the status of a workload task.
 
-The AWS Toolkit for VS Code includes full support for state machine visualization, enabling you to visualize your state machine in real time as you build. The AWS Toolkit for VS Code includes a language server for Amazon States Language, which lints your state machine definition to highlight common errors, provides auto-complete support, and code snippets for each state, enabling you to build state machines faster.
+## Use the SAM CLI to build and test the application locally
 
-## Deploy the sample application
+Build the Lambda functions in your application with the `sam build --use-container` command used within the following `make` command,
+
+```
+stax-orchestrator$ make build-app
+```
+
+The SAM CLI installs dependencies defined in `requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder. The `make` command `make prepare-lambda-layer-dir` builds the lambda layer directory using the requirements file.
+
+Once you have built the app locally, try running `make run-create-workload-lambda-locally` to test running the workload create lambda locally.
+
+## Stax API Token
+
+Access to Stax Api's via Stax SDK requires an API token (access key and secret) populated in your account for use with Stax Orchestrator application.
+
+Follow Stax's [guide](https://support.stax.io/hc/en-us/articles/4447111085583-Create-an-API-Token) to create the API token. After you create the token, populate the following SSM parameters into your AWS Account,
+
+* `/orchestrator/stax/access/key` - Stax Access Key
+* `/orchestrator/stax/access/key/secret` - Stax Access Key Secret
+
+
+## Stax Deployment Bucket
+
+Inorder to use Stax to deploy workloads, we need to use s3 bucket accessible by Stax to store our artifacts, our cloudformation templates and package dependencies.
+
+Stax has a workload `stax-deployment-bucket` manifest deployed in every installation that we can deploy to then start using the s3 bucket to store artifacts. Follow Stax's [guide](https://support.stax.io/hc/en-us/articles/4450989147919-Add-a-Workload-to-the-Workload-Catalog#:~:text=If%20you%20need%20to%20upload%20artifacts%20that%20are%20referenced%20by%20your%20Manifest%2C%20such%20as%20CloudFormation%20templates%2C%20you%20must%3A) to get started.
+
+After you deploy the `stax-deployment-bucket` workload,
+
+* Store the name of the bucket in a Ssm parameter with path `/orchestrator/stax/artifact/bucket/name` which will be consumed by Stax Orchestrator.
+* Add a [policy](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html#:~:text=%7B%0A%20%20%20%20%22Version%22%3A%20%222012,aws%3ASourceAccount%22%3A%20%22123456789012%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%5D%0A%7D) to allow AWS's Serverless Service access the bucket to get artifacts.
+
+## Deploy Stax Orchestrator
 
 The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda.
 
-To use the SAM CLI, you need the following tools:
+To use the Stax Orchestrator Application, you need the following tools:
 
 * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* [Python 3 installed](https://www.python.org/downloads/)
+* [Python 3.9 installed](https://www.python.org/downloads/)
 * Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
+* [Make](https://www.gnu.org/software/make/manual/make.html)
+* Workload Deployment Bucket (See Readme's section #Stax Deployment Bucket)
 
 To build and deploy your application for the first time, run the following in your shell:
 
 ```bash
-sam build --use-container
-sam deploy --guided
+make deploy-stax-orchestrator
 ```
 
-The first command will build the source of your application. The second command will package and deploy your application to AWS, with a series of prompts:
-
-* **Stack Name**: The name of the stack to deploy to CloudFormation. This should be unique to your account and region, and a good starting point would be something matching your project name.
-* **AWS Region**: The AWS region you want to deploy your app to.
-* **Confirm changes before deploy**: If set to yes, any change sets will be shown to you before execution for manual review. If set to no, the AWS SAM CLI will automatically deploy application changes.
-* **Allow SAM CLI IAM role creation**: Many AWS SAM templates, including this example, create AWS IAM roles required for the AWS Lambda function(s) included to access AWS services. By default, these are scoped down to minimum required permissions. To deploy an AWS CloudFormation stack which creates or modifies IAM roles, the `CAPABILITY_IAM` value for `capabilities` must be provided. If permission isn't provided through this prompt, to deploy this example you must explicitly pass `--capabilities CAPABILITY_IAM` to the `sam deploy` command.
-* **Save arguments to samconfig.toml**: If set to yes, your choices will be saved to a configuration file inside the project, so that in the future you can just re-run `sam deploy` without parameters to deploy changes to your application.
-
-## Use the SAM CLI to build locally
-
-Build the Lambda functions in your application with the `sam build --use-container` command.
-
-```bash
-stax-orchestrator$ sam build --use-container
-```
-
-The SAM CLI installs dependencies defined in `functions/*/requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder.
-
-## Add a resource to your application
-The application template uses AWS Serverless Application Model (AWS SAM) to define application resources. AWS SAM is an extension of AWS CloudFormation with a simpler syntax for configuring common serverless application resources such as functions, triggers, and APIs. For resources not included in [the SAM specification](https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md), you can use standard [AWS CloudFormation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html) resource types.
+Sam will build the source of your application and deploy Stax Orchestrator to AWS.
 
 ## Fetch, tail, and filter Lambda function logs
 
@@ -74,34 +90,64 @@ To simplify troubleshooting, SAM CLI has a command called `sam logs`. `sam logs`
 `NOTE`: This command works for all AWS Lambda functions; not just the ones you deploy using SAM.
 
 ```bash
-stax-orchestrator$ sam logs -n StockCheckerFunction --stack-name stax-orchestrator --tail
+stax-orchestrator$ sam logs -n CreateWorkloadLambda --stack-name orchestrator-stax --tail
 ```
 
 You can find more information and examples about filtering Lambda function logs in the [SAM CLI Documentation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-logging.html).
 
-## Tests
+## Deploying a workload
 
-Tests are defined in the `tests` folder in this project. Use PIP to install the test dependencies and run tests.
+* Deploy a Stax workload [catalogue](https://support.stax.io/hc/en-us/articles/4450989147919-Add-a-Workload-to-the-Workload-Catalog).
+    * Remember the Catalogue ID of the catalogue deployed as we will need this to deploy the workload.
 
-```bash
-stax-orchestrator$ pip install -r tests/requirements.txt --user
-# unit test
-stax-orchestrator$ python -m pytest tests/unit -v
-# integration test, requiring deploying the stack first.
-# Create the env variable AWS_SAM_STACK_NAME with the name of the stack we are testing
-stax-orchestrator$ AWS_SAM_STACK_NAME=<stack-name> python -m pytest tests/integration -v
-```
+* Run `Workload Step Function` step function with the following payload,
+    ```
+    {
+        "aws_account_id": "asd12e3-7c0e-4807-96ee-asd12ec21r2",
+        "aws_region": "ap-southeast-2",
+        "operation": "deploy",
+        "catalogue_id": "b3437e3b-55e3-4060-9dec-042f18dcf789",
+        "catalogue_version_id": "545dca4",
+        "workload_name": "orchestrator-stax-demo-vpc",
+        "workload_parameters": {
+            "Param1": "Value1"
+        },
+        "workload_tags": {
+            "Tag1": "Value1"
+        }
+    }
+    ```
+    * aws_account_id - Stax AWS Account ID (UUID) to deploy workload to.
+    * aws_region - The AWS Region to deploy the workload to.
+    * catalogue_id - The ID of the catalogue containing workload manifest.
+    * catalogue_version_id (OPTIONAL): Deploy a specific version of the catalogue workload.
+    * workload_name - Name of the workload to deploy (must be unique).
+    * workload_parameters - Parameters that get passed into cloudformation templates upon workload deployment.
+    * workload_tags - Tags to attach to the workload.
 
-## Cleanup
+## Updating a workload
 
-To delete the sample application that you created, use the AWS CLI. Assuming you used your project name for the stack name, you can run the following:
+* Update a Stax workload [catalogue](https://support.stax.io/hc/en-us/articles/4451005420943-Update-a-Workload).
+    * Remember the Catalogue ID and version of the updated catalogue as we will need this to deploy the workload.
 
-```bash
-aws cloudformation delete-stack --stack-name stax-orchestrator
-```
+* Run `Workload Step Function` step function with the following payload,
+    ```
+    {
+        "operation": "update",
+        "workload_id": "b3437e3b-55e3-4060-9dec-042f18dcf789",
+        "catalogue_version_id": "545dca4"
+    }
+    ```
+    * workload_id - The ID of the workload to update
+    * catalogue_version_id: The version of the catalogue workload to deploy
 
-## Resources
+## Deleting a workload
 
-See the [AWS SAM developer guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) for an introduction to SAM specification, the SAM CLI, and serverless application concepts.
-
-Next, you can use AWS Serverless Application Repository to deploy ready to use Apps that go beyond hello world samples and learn how authors developed their applications: [AWS Serverless Application Repository main page](https://aws.amazon.com/serverless/serverlessrepo/)
+* Run `Workload Step Function` step function with the following payload,
+    ```
+    {
+        "operation": "delete",
+        "workload_id": "b3437e3b-55e3-4060-9dec-042f18dcf789"
+    }
+    ```
+    * workload_id - The ID of the workload to update

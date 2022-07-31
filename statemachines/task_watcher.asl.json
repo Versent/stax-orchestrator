@@ -1,0 +1,57 @@
+{
+    "Comment": "State machine for monitoring the status of a workload task.",
+    "StartAt": "Get Task Status",
+    "States": {
+        "Get Task Status": {
+            "Type": "Task",
+            "Comment": "Fetch task status",
+            "Next": "Has task succeeded?",
+            "Resource": "${GetTaskStatusLambdaArn}",
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 15,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1.5
+                }
+            ]
+        },
+        "Has task succeeded?": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.task_info.Status",
+                    "StringEquals": "SUCCEEDED",
+                    "Next": "Success"
+                },
+                {
+                    "Variable": "$.task_info.Status",
+                    "StringEquals": "PENDING",
+                    "Next": "Wait for task to complete"
+                },
+                {
+                    "Variable": "$.task_info.Status",
+                    "StringEquals": "RUNNING",
+                    "Next": "Wait for task to complete"
+                }
+            ],
+            "Default": "Task Failure"
+        },
+        "Wait for task to complete": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "Get Task Status"
+        },
+        "Success": {
+            "Type": "Succeed"
+        },
+        "Task Failure": {
+            "Type": "Fail"
+        }
+    }
+}

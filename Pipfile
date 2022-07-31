@@ -4,12 +4,15 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-boto3-stubs = "==1.21.43"
+black = "*"
+pylint = "*"
+isort = "*"
 
 [packages]
-staxapp = {git = 'git+ssh://git@github.com/richardkeit/lib-stax-python-sdk.git',ref = 'master'}
+staxapp = "*"
 boto3 = "*"
 aws-lambda-powertools = "*"
+aws_xray_sdk = "*"
 
 [requires]
 python_version = "3.9"
