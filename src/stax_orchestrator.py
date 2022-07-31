@@ -188,7 +188,7 @@ class StaxOrchestrator:
         return parameters_list
 
     def get_task_status(self, task_id: UUID) -> dict:
-        """Poll Stax to get status of a given task
+        """Poll Stax to get status of a given workload task
 
         Args:
             task_id (UUID): ID of the task to get status for
