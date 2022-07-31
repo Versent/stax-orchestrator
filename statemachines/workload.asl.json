@@ -86,15 +86,6 @@
                     "MaxAttempts": 5,
                     "BackoffRate": 1.5
                 }
-            ],
-            "Catch": [
-                {
-                    "ErrorEquals": [
-                        "ApiException"
-                    ],
-                    "ResultPath": "$.workload-not-found-error",
-                    "Next": "Workload Not Found"
-                }
             ]
         },
         "Delete Workload": {
@@ -117,15 +108,6 @@
                     "IntervalSeconds": 15,
                     "MaxAttempts": 5,
                     "BackoffRate": 1.5
-                }
-            ],
-            "Catch": [
-                {
-                    "ErrorEquals": [
-                        "ApiException"
-                    ],
-                    "ResultPath": "$.workload-not-found-error",
-                    "Next": "Workload Not Found"
                 }
             ]
         },
@@ -156,9 +138,6 @@
                 }
             ],
             "End": true
-        },
-        "Workload Not Found": {
-            "Type": "Succeed"
         }
     }
 }

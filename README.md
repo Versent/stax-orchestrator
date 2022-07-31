@@ -12,6 +12,7 @@ This project contains source code and supporting files for Stax Orchestrator Ser
 - template.yaml - A template that defines the application's AWS resources.
 - Makefile - Run shell commands using make targets for a smooth developer experience.
 - events - Json files containing test data to run against your application code locally.
+- assets - Diagrams and other assets.
 
 ## Stax Orchestrator Workflow Diagram
 

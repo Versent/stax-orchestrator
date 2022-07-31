@@ -84,12 +84,6 @@ class StaxOrchestrator:
     class WorkloadOperationNotSupported(Exception):
         """Raised when workload operation is not one of deploy/update/delete"""
 
-    def get_catalogue_hash(self) -> str:
-        """
-        Generate a random hash for stax catalogue version
-        """
-        return uuid4().hex[:7]
-
     # pylint: disable=too-many-arguments
     def create_update_catalogue(
         self,
@@ -111,7 +105,7 @@ class StaxOrchestrator:
             catalogue_id (UUID): ID of the catalogue if updating.
         """
         s3_resource = boto3.resource("s3")
-        catalogue_version = self.get_catalogue_hash()
+        catalogue_version = str(uuid4())
         cfn_name = f"{catalogue_version}-{catalogue_name}.yaml"
         s3_resource.Bucket(bucket_name).upload_file(
             cloudformation_manifest_path, cfn_name

@@ -19,15 +19,6 @@
                     "MaxAttempts": 5,
                     "BackoffRate": 1.5
                 }
-            ],
-            "Catch": [
-                {
-                    "ErrorEquals": [
-                        "ApiException"
-                    ],
-                    "ResultPath": "$.task-not-found-error",
-                    "Next": "Task Not Found"
-                }
             ]
         },
         "Has task succeeded?": {
@@ -57,9 +48,6 @@
             "Next": "Get Task Status"
         },
         "Success": {
-            "Type": "Succeed"
-        },
-        "Task Not Found": {
             "Type": "Succeed"
         },
         "Task Failure": {
