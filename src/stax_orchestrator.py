@@ -47,7 +47,7 @@ class StaxOrchestrator:
     class CreateWorkloadEvent:
         """Event data containing required information to deploy a workload."""
 
-        aws_account_id: int
+        aws_account_id: UUID
         aws_region: str
         catalogue_id: UUID
         workload_name: str
@@ -59,13 +59,13 @@ class StaxOrchestrator:
     class DeleteWorkloadEvent:
         """Event data containing required information to delete a workload."""
 
-        workload_id: str
+        workload_id: UUID
 
     @dataclass(frozen=True)
     class UpdateWorkloadEvent:
         """Event data containing required information to update a workload."""
 
-        workload_id: str
+        workload_id: UUID
         catalogue_version_id: str
 
     class WorkloadOperation(str, Enum):
@@ -74,9 +74,6 @@ class StaxOrchestrator:
         DEPLOY = "deploy"
         UPDATE = "update"
         DELETE = "delete"
-
-    class TaskNotFound(Exception):
-        """Raised when task not found in Stax"""
 
     class WorkloadWithNameAlreadyExists(Exception):
         """Raised when workload with same name already exists in Stax"""

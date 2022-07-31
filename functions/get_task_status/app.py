@@ -21,9 +21,6 @@ def lambda_handler(event: dict, _) -> dict:
     Args:
         event (dict): Event data containing workload and task ID
 
-    Raises:
-        stax_orchestrator.TaskNotFound: When a given task is not found
-
     Returns:
         dict: Event including task status
     """

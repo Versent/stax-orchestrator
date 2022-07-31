@@ -1,4 +1,4 @@
-# stax-orchestrator
+# Stax Orchestrator
 
 This application deploys step functions into your account that you can use to interact with [Stax](https://www.stax.io/) to CUD (create-update-delete) workloads in your AWS Account(s).
 
@@ -12,6 +12,10 @@ This project contains source code and supporting files for Stax Orchestrator Ser
 - template.yaml - A template that defines the application's AWS resources.
 - Makefile - Run shell commands using make targets for a smooth developer experience.
 - events - Json files containing test data to run against your application code locally.
+
+## Stax Orchestrator Workflow Diagram
+
+![Stax Orchestrator Workflow Diagram](assets/StaxOrchestrator.png)
 
 ## Resources
 
