@@ -1,8 +1,9 @@
 """
-    Common logic to interact with Stax to deploy workloads and monitor task status.
+    Common logic to interact with Stax to deploy/update/delete workloads and monitor task status.
 """
 import logging
 from dataclasses import dataclass
+from enum import Enum
 from os import environ
 from typing import Optional
 from uuid import UUID, uuid4
@@ -17,18 +18,6 @@ logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 
 xray_recorder.configure(service="StaxOrchestrator:Libs")
 patch_all()
-
-
-@dataclass(frozen=True, order=True)
-class WorkloadEvent:
-    """Event data containing required information to deploy a workload."""
-
-    aws_account_id: int
-    aws_region: str
-    catalogue_id: UUID
-    workload_name: str
-    workload_parameters: Optional[dict] = None
-    workload_tags: Optional[dict] = None
 
 
 def get_stax_client(client_type: str) -> StaxClient:
@@ -47,10 +36,6 @@ def get_stax_client(client_type: str) -> StaxClient:
     return StaxClient(client_type)
 
 
-class MissingRequiredInput(Exception):
-    """Raised when required user inputs are not present"""
-
-
 @dataclass
 class StaxOrchestrator:
     """Interact with Stax to deploy workloads and monitor workload task status."""
@@ -58,11 +43,49 @@ class StaxOrchestrator:
     workload_client: StaxClient = get_stax_client("workloads")
     tasks_client: StaxClient = get_stax_client("tasks")
 
+    @dataclass(frozen=True)
+    class CreateWorkloadEvent:
+        """Event data containing required information to deploy a workload."""
+
+        aws_account_id: int
+        aws_region: str
+        catalogue_id: UUID
+        workload_name: str
+        catalogue_version_id: Optional[str] = None
+        workload_parameters: Optional[dict] = None
+        workload_tags: Optional[dict] = None
+
+    @dataclass(frozen=True)
+    class DeleteWorkloadEvent:
+        """Event data containing required information to delete a workload."""
+
+        workload_id: str
+
+    @dataclass(frozen=True)
+    class UpdateWorkloadEvent:
+        """Event data containing required information to update a workload."""
+
+        workload_id: str
+        catalogue_version_id: str
+
+    class WorkloadOperation(str, Enum):
+        """Supported workload operations"""
+
+        DEPLOY = "deploy"
+        UPDATE = "update"
+        DELETE = "delete"
+
     class TaskNotFound(Exception):
         """Raised when task not found in Stax"""
 
     class WorkloadWithNameAlreadyExists(Exception):
         """Raised when workload with same name already exists in Stax"""
+
+    class MissingRequiredInput(Exception):
+        """Raised when required user inputs are not present"""
+
+    class WorkloadOperationNotSupported(Exception):
+        """Raised when workload operation is not one of deploy/update/delete"""
 
     def get_catalogue_hash(self) -> str:
         """
@@ -70,20 +93,25 @@ class StaxOrchestrator:
         """
         return uuid4().hex[:7]
 
-    def create_catalogue(
+    # pylint: disable=too-many-arguments
+    def create_update_catalogue(
         self,
         bucket_name: str,
         catalogue_name: str,
         cloudformation_manifest_path: str,
-        description: Optional[str] = "",
+        description: str,
+        update_catalogue: bool = False,
+        catalogue_id: UUID = None,
     ) -> dict:
-        """Create a Stax Catalogue with given cloudformation template
+        """Creates/Updates a Stax Catalogue with given cloudformation template
 
         Args:
             bucket_name (str): Name of the s3 bucket to upload the manifest to
             catalogue_name (str): Name of the catalogue to create
             cloudformation_manifest_path (str): Local path to the cloudformation manifest
-            description (Optional[str], optional): Catalogue description. Defaults to "".
+            description (str): Catalogue description
+            update_catalogue (Optional[bool]): True if updating catalogue version.
+            catalogue_id (UUID): ID of the catalogue if updating.
         """
         s3_resource = boto3.resource("s3")
         catalogue_version = self.get_catalogue_hash()
@@ -97,6 +125,14 @@ class StaxOrchestrator:
             Type: AWS::Cloudformation
             TemplateURL: s3://{bucket_name}/{cfn_name}
         """
+        if update_catalogue:
+            return self.workload_client.CreateCatalogueVersion(
+                ManifestBody=manifest_body,
+                Version=catalogue_version,
+                Description=description,
+                catalogue_id=catalogue_id,
+            )
+
         return self.workload_client.CreateCatalogueItem(
             Name=catalogue_name,
             ManifestBody=manifest_body,
@@ -111,6 +147,7 @@ class StaxOrchestrator:
         catalogue_id: UUID,
         aws_region: str,
         aws_account_id: UUID,
+        catalogue_version_id: str = None,
         workload_parameters: Optional[list] = None,
         workload_tags: Optional[dict] = None,
     ) -> dict:
@@ -121,6 +158,7 @@ class StaxOrchestrator:
             catalogue_id (UUID): Catalogue UUID to use to create the worload
             aws_region (str): The AWS Region to deploy the workload to
             aws_account_id (UUID): Stax AWS Account UUID to deploy the workload to
+            catalogue_version_id (Optional[str]): Deploy a certain version of the catalogue
             workload_parameters (Optional[list], optional): Workload cloudformation parameters
             workload_tags (Optional[dict], optional): Tags to attach to the workload to be deployed
         """
@@ -130,6 +168,9 @@ class StaxOrchestrator:
             "AccountId": aws_account_id,
             "Region": aws_region,
         }
+
+        if catalogue_version_id:
+            create_workload_payload["CatalogueVersionId"] = catalogue_version_id
 
         if workload_parameters:
             create_workload_payload["Parameters"] = self.get_parameters_list(
@@ -215,3 +256,52 @@ class StaxOrchestrator:
                 return True
 
         return False
+
+    def get_deploy_workload_kwargs(self, event: dict) -> dict:
+        """Get required workload arguments from the event for deploy operation
+
+        Args:
+            event (dict): Details about the workload to be deployed
+
+        Returns:
+            dict: Dictionary of deploy workload keyword arguments.
+        """
+        workload_kwargs = {
+            "aws_account_id": event["aws_account_id"],
+            "aws_region": event["aws_region"],
+            "catalogue_id": event["catalogue_id"],
+            "workload_name": event["workload_name"],
+        }
+
+        if "workload_parameters" in event:
+            workload_kwargs["workload_parameters"] = event["workload_parameters"]
+
+        if "workload_tags" in event:
+            workload_kwargs["workload_tags"] = event["workload_tags"]
+
+        return workload_kwargs
+
+    def get_update_workload_kwargs(self, event: dict) -> dict:
+        """Get required workload arguments from the event for an update operation
+
+        Args:
+            event (dict): Details about the workload to be updated
+
+        Returns:
+            dict: Dictionary of update workload keyword arguments.
+        """
+        return {
+            "catalogue_version_id": event["catalogue_version_id"],
+            "workload_id": event["workload_id"],
+        }
+
+    def get_delete_workload_kwargs(self, event: dict) -> dict:
+        """Get required workload arguments from the event for a delete operation
+
+        Args:
+            event (dict): Details about the workload to be deleted
+
+        Returns:
+            dict: Dictionary of update workload keyword arguments.
+        """
+        return {"workload_id": event["workload_id"]}

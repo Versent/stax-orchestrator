@@ -1,5 +1,5 @@
 {
-    "Comment": "State machine for watching stax tasks",
+    "Comment": "State machine for monitoring the status of a workload task.",
     "StartAt": "Get Task Status",
     "States": {
         "Get Task Status": {
@@ -20,11 +20,15 @@
                     "BackoffRate": 1.5
                 }
             ],
-            "Catch": [{
-              "ErrorEquals": [ "TaskNotFound" ],
-              "ResultPath": "$.task-not-found-error",
-              "Next": "Task Not Found"
-            }]
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "ApiException"
+                    ],
+                    "ResultPath": "$.task-not-found-error",
+                    "Next": "Task Not Found"
+                }
+            ]
         },
         "Has task succeeded?": {
             "Type": "Choice",
@@ -46,8 +50,8 @@
                 }
             ],
             "Default": "Task Failure"
-          },
-          "Wait for task to complete": {
+        },
+        "Wait for task to complete": {
             "Type": "Wait",
             "Seconds": 10,
             "Next": "Get Task Status"

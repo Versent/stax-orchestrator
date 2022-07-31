@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: Step Functions and lambdas to interact with Stax to deploy workloads.
+Description: Step Functions and lambdas to interact with Stax to CUD (create-update-delete) workloads in your AWS Account(s).
 
 Parameters:
   PythonLoggingLevel:
@@ -17,7 +17,7 @@ Parameters:
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: stax-orchestrator
-    Description: Stax Workloads Orchestrator - Interact with Stax to deploy workloads into your AWS Account(s).
+    Description: Stax Workloads Orchestrator - Interact with Stax to CUD (create-update-delete) workloads in your AWS Account(s).
     Author: Versent
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE
@@ -28,19 +28,21 @@ Metadata:
     SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
 
 Resources:
-  WorkloadDeployerStateMachine:
+  WorkloadStateMachine:
     Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionUri: statemachines/workload_deployer.asl.json
+      DefinitionUri: statemachines/workload.asl.json
       Tracing:
         Enabled: true
       DefinitionSubstitutions:
         ValidateInputLambdaArn: !GetAtt ValidateInputLambda.Arn
         CreateWorkloadLambdaArn: !GetAtt CreateWorkloadLambda.Arn
+        UpdateWorkloadLambdaArn: !GetAtt UpdateWorkloadLambda.Arn
+        DeleteWorkloadLambdaArn: !GetAtt DeleteWorkloadLambda.Arn
         TaskFactoryArn: !GetAtt TaskWatcherStateMachine.Arn
-      Role: !GetAtt WorkloadDeployerStateMachineRole.Arn
+      Role: !GetAtt WorkloadStateMachineRole.Arn
 
-  WorkloadDeployerStateMachineRole:
+  WorkloadStateMachineRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -53,7 +55,7 @@ Resources:
       ManagedPolicyArns:
         - !Ref StaxOrchestratorSfnPolicy
       Policies:
-        - PolicyName: WorkloadDeployerStateMachinePolicy
+        - PolicyName: WorkloadStateMachinePolicy
           PolicyDocument:
             Statement:
               - Effect: Allow
@@ -61,6 +63,8 @@ Resources:
                 Resource:
                   - !GetAtt ValidateInputLambda.Arn
                   - !GetAtt CreateWorkloadLambda.Arn
+                  - !GetAtt UpdateWorkloadLambda.Arn
+                  - !GetAtt DeleteWorkloadLambda.Arn
               - Effect: Allow
                 Action: states:StartExecution
                 Resource:
@@ -123,6 +127,48 @@ Resources:
     Properties:
       Description: Invoke Stax Api to create a workload
       CodeUri: functions/create_workload/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      MemorySize: 256
+      Layers:
+        - !Ref StaxLibLayer
+      Timeout: 20
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
+
+  UpdateWorkloadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Invoke Stax Api to update a workload
+      CodeUri: functions/update_workload/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      MemorySize: 256
+      Layers:
+        - !Ref StaxLibLayer
+      Timeout: 20
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
+
+  DeleteWorkloadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Invoke Stax Api to delete a workload
+      CodeUri: functions/delete_workload/
       Handler: app.lambda_handler
       Runtime: python3.9
       Tracing: Active
@@ -236,9 +282,9 @@ Resources:
       RetentionInDays: 60
 
 Outputs:
-  WorkloadDeployerArn:
+  WorkloadArn:
     Description: Stax workload deployer arn
-    Value: !Ref WorkloadDeployerStateMachine
+    Value: !Ref WorkloadStateMachine
 
   TaskWatcherArn:
     Description: Stax task watcher arn

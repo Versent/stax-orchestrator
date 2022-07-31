@@ -1,0 +1,164 @@
+{
+    "Comment": "State machine for creating/updating/deleting stax workloads.",
+    "StartAt": "Validate Input",
+    "States": {
+        "Validate Input": {
+            "Type": "Task",
+            "Comment": "Validate input for required attributes.",
+            "Next": "Operation?",
+            "Resource": "${ValidateInputLambdaArn}",
+            "ResultPath": "$.workload_event",
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 15,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1.5
+                }
+            ]
+        },
+        "Operation?": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.operation",
+                    "StringEquals": "deploy",
+                    "Next": "Create Workload"
+                },
+                {
+                    "Variable": "$.operation",
+                    "StringEquals": "update",
+                    "Next": "Update Workload"
+                },
+                {
+                    "Variable": "$.operation",
+                    "StringEquals": "delete",
+                    "Next": "Delete Workload"
+                }
+            ]
+        },
+        "Create Workload": {
+            "Type": "Task",
+            "Comment": "Trigger Stax Api to create a workload.",
+            "Next": "Check Task Status",
+            "Resource": "${CreateWorkloadLambdaArn}",
+            "InputPath": "$.workload_event",
+            "ResultSelector": {
+                "workload_response.$": "$.Detail"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 15,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1.5
+                }
+            ]
+        },
+        "Update Workload": {
+            "Type": "Task",
+            "Comment": "Trigger Stax Api to update a workload.",
+            "Next": "Check Task Status",
+            "Resource": "${UpdateWorkloadLambdaArn}",
+            "InputPath": "$.workload_event",
+            "ResultSelector": {
+                "workload_response.$": "$.Detail"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 15,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1.5
+                }
+            ],
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "ApiException"
+                    ],
+                    "ResultPath": "$.workload-not-found-error",
+                    "Next": "Workload Not Found"
+                }
+            ]
+        },
+        "Delete Workload": {
+            "Type": "Task",
+            "Comment": "Trigger Stax Api to delete a workload.",
+            "Next": "Check Task Status",
+            "Resource": "${DeleteWorkloadLambdaArn}",
+            "InputPath": "$.workload_event",
+            "ResultSelector": {
+                "workload_response.$": "$.Detail"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 15,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1.5
+                }
+            ],
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "ApiException"
+                    ],
+                    "ResultPath": "$.workload-not-found-error",
+                    "Next": "Workload Not Found"
+                }
+            ]
+        },
+        "Check Task Status": {
+            "Type": "Task",
+            "Comment": "Trigger task factory to monitor and report on task status.",
+            "TimeoutSeconds": 7200,
+            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+            "Parameters": {
+                "Input": {
+                    "workload_name.$": "$.workload_response.Workload.Name",
+                    "workload_id.$": "$.workload_response.Workload.WorkloadId",
+                    "task_id.$": "$.workload_response.Workload.TaskId"
+                },
+                "StateMachineArn": "${TaskFactoryArn}"
+            },
+            "Retry": [
+                {
+                    "ErrorEquals": [
+                        "Lambda.ServiceException",
+                        "Lambda.AWSLambdaException",
+                        "Lambda.SdkClientException",
+                        "Lambda.Unknown"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 5,
+                    "BackoffRate": 1
+                }
+            ],
+            "End": true
+        },
+        "Workload Not Found": {
+            "Type": "Succeed"
+        }
+    }
+}
