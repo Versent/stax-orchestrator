@@ -275,6 +275,18 @@ Resources:
       LogGroupName: !Sub /aws/lambda/${CreateWorkloadLambda}
       RetentionInDays: 60
 
+  UpdateWorkloadLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${UpdateWorkloadLambda}
+      RetentionInDays: 60
+
+  DeleteWorkloadLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${DeleteWorkloadLambda}
+      RetentionInDays: 60
+
   GetTaskStatusLambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
