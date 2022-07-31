@@ -51,7 +51,7 @@ deploy-stax-orchestrator: clean lint build-app package-app ## Deploy Stax Orches
 package-app: ## Package and upload application artifacts to the stax deployment bucket
 	sam package --output-template-file template.packaged.yml --s3-bucket $(ARTIFACT_BUCKET_NAME)
 
-publish-app: ## Publish Stax Orchestrator Application to Serverless Application Repository
+publish-app: build-app package-app ## Publish Stax Orchestrator Application to Serverless Application Repository
 	sam publish --template template.packaged.yml --region ap-southeast-2
 
 .PHONY: clean build-app deploy-stax-orchestrator run-create-workload-lambda-locally prepare-lambda-layer-dir format lint shell install-dependencies help package-app publish-app
