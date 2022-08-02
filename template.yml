@@ -1,0 +1,303 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Step Functions and lambdas to interact with Stax to CUD (create-update-delete) workloads in your AWS Account(s).
+
+Parameters:
+  PythonLoggingLevel:
+    Type: String
+    Description: Python logging level for Lambda functions
+    Default: INFO
+    AllowedValues:
+      - INFO
+      - DEBUG
+      - WARNING
+      - ERROR
+      - CRITICAL
+
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: stax-orchestrator
+    Description: Stax Workloads Orchestrator - Interact with Stax to CUD (create-update-delete) workloads in your AWS Account(s).
+    Author: Versent
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: LICENSE
+    ReadmeUrl: README.md
+    Labels: ['AWS', 'Stax', 'Serverless', 'Lambda', 'StepFunction']
+    HomePageUrl: https://github.com/Versent/stax-orchestrator.git
+    SemanticVersion: 0.0.1
+    SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
+
+Resources:
+  WorkloadStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachines/workload.asl.json
+      Tracing:
+        Enabled: true
+      DefinitionSubstitutions:
+        ValidateInputLambdaArn: !GetAtt ValidateInputLambda.Arn
+        CreateWorkloadLambdaArn: !GetAtt CreateWorkloadLambda.Arn
+        UpdateWorkloadLambdaArn: !GetAtt UpdateWorkloadLambda.Arn
+        DeleteWorkloadLambdaArn: !GetAtt DeleteWorkloadLambda.Arn
+        TaskFactoryArn: !GetAtt TaskWatcherStateMachine.Arn
+      Role: !GetAtt WorkloadStateMachineRole.Arn
+
+  WorkloadStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref StaxOrchestratorSfnPolicy
+      Policies:
+        - PolicyName: WorkloadStateMachinePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt ValidateInputLambda.Arn
+                  - !GetAtt CreateWorkloadLambda.Arn
+                  - !GetAtt UpdateWorkloadLambda.Arn
+                  - !GetAtt DeleteWorkloadLambda.Arn
+              - Effect: Allow
+                Action: states:StartExecution
+                Resource:
+                  - !Ref TaskWatcherStateMachine
+
+  TaskWatcherStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      DefinitionUri: statemachines/task_watcher.asl.json
+      Tracing:
+        Enabled: true
+      DefinitionSubstitutions:
+        GetTaskStatusLambdaArn: !GetAtt GetTaskStatusLambda.Arn
+      Role: !GetAtt TaskWatcherStateMachineRole.Arn
+
+  TaskWatcherStateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.${AWS::Region}.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Ref StaxOrchestratorSfnPolicy
+      Policies:
+        - PolicyName: TaskWatcherStateMachinePolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt GetTaskStatusLambda.Arn
+
+  ValidateInputLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Validate user input required to create/update workloads
+      CodeUri: functions/validate_input/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 20
+      Tracing: Active
+      Layers:
+        - !Ref StaxLibLayer
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
+
+  CreateWorkloadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Invoke Stax Api to create a workload
+      CodeUri: functions/create_workload/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      MemorySize: 256
+      Layers:
+        - !Ref StaxLibLayer
+      Timeout: 20
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
+
+  UpdateWorkloadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Invoke Stax Api to update a workload
+      CodeUri: functions/update_workload/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      MemorySize: 256
+      Layers:
+        - !Ref StaxLibLayer
+      Timeout: 20
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
+
+  DeleteWorkloadLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Invoke Stax Api to delete a workload
+      CodeUri: functions/delete_workload/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      Tracing: Active
+      MemorySize: 256
+      Layers:
+        - !Ref StaxLibLayer
+      Timeout: 20
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
+
+  GetTaskStatusLambda:
+    Type: AWS::Serverless::Function
+    Properties:
+      Description: Get status of a workload task
+      CodeUri: functions/get_task_status/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      MemorySize: 128
+      Timeout: 20
+      Tracing: Active
+      Layers:
+        - !Ref StaxLibLayer
+      Environment:
+        Variables:
+          LOG_LEVEL: !Ref PythonLoggingLevel
+      Architectures:
+        - arm64
+      Policies:
+        - !Ref StaxOrchestratorLambdaPolicy
+        - AWSXRayDaemonWriteAccess
+
+  StaxLibLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: stax-orchestrator-shared-lib-layer
+      ContentUri: lambda_layer
+      CompatibleRuntimes:
+        - python3.9
+      RetentionPolicy: Delete
+    Metadata:
+      BuildMethod: python3.9
+      BuildArchitecture: arm64
+
+  StaxLibLayerPermission:
+    Type: AWS::Lambda::LayerVersionPermission
+    Properties:
+      Action: lambda:GetLayerVersion
+      LayerVersionArn: !Ref StaxLibLayer
+      Principal: !Ref AWS::AccountId
+
+  StaxOrchestratorLambdaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Stax Orchestrator Managed Policy for lambdas to use with AWS Resources.
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ssm:GetParameter
+            Resource:
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key
+              - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key/secret
+
+  StaxOrchestratorSfnPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Stax Orchestrator Managed Policy for step functions to use with AWS Resources.
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+            - events:PutTargets
+            - events:PutRule
+            - events:DescribeRule
+            Resource:
+            - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+          - Effect: Allow
+            Action:
+              - xray:PutTraceSegments
+              - xray:PutTelemetryRecords
+              - xray:GetSamplingRules
+              - xray:GetSamplingTargets
+              - xray:GetSamplingStatisticSummaries
+            Resource:
+              - '*'
+
+  ValidateInputLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${ValidateInputLambda}
+      RetentionInDays: 60
+
+  CreateWorkloadLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${CreateWorkloadLambda}
+      RetentionInDays: 60
+
+  UpdateWorkloadLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${UpdateWorkloadLambda}
+      RetentionInDays: 60
+
+  DeleteWorkloadLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${DeleteWorkloadLambda}
+      RetentionInDays: 60
+
+  GetTaskStatusLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${GetTaskStatusLambda}
+      RetentionInDays: 60
+
+Outputs:
+  WorkloadArn:
+    Description: Stax workload deployer arn
+    Value: !Ref WorkloadStateMachine
+
+  TaskWatcherArn:
+    Description: Stax task watcher arn
+    Value: !Ref TaskWatcherStateMachine
