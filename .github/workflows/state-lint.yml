@@ -6,14 +6,19 @@ on: [push]
 jobs:
   lint:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Ruby 2.6
-        uses: actions/setup-ruby@v1
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
         with:
-          ruby-version: 2.6
-      - name: Build and Test Stepfunction
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
         run: |
-          gem install statelint
-          find statemachines -maxdepth 1 -type f -exec statelint {} \;
-          
+          python -m pip install --upgrade pipenv
+          make install-dependencies
+      - name: Analysing the code with stateline (python)
+        run: |
+          make lint-statemachine

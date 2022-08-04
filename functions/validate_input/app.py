@@ -1,9 +1,12 @@
+"""
+    Validate input to the workload state machine
+"""
 import logging
 from os import environ
 
 from aws_xray_sdk.core import patch_all, xray_recorder
 
-from stax_orchestrator import MissingRequiredInput, WorkloadEvent
+from stax_orchestrator import StaxOrchestrator
 
 logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 
@@ -11,11 +14,11 @@ xray_recorder.configure(service="StaxOrchestrator:ValidateInput")
 patch_all()
 
 
-def lambda_handler(event, _) -> WorkloadEvent.__dict__:
+def lambda_handler(event: dict, _) -> dict:
     """Validate input to workload state machine
 
     Args:
-        event (dict): Details about the workload to be deployed or updated
+        event (dict): Details about the workload to be deployed/updated/deleted
 
     Returns:
         WorkloadEvent: Details about the catalogue, workload and account
@@ -23,23 +26,25 @@ def lambda_handler(event, _) -> WorkloadEvent.__dict__:
     Raises:
         KeyError: Raised when required event arguments are not present
     """
-    workload_kwargs = {}
-
+    stax_orchestrator = StaxOrchestrator()
     try:
-        workload_kwargs = {
-            "aws_account_id": event["aws_account_id"],
-            "aws_region": event["aws_region"],
-            "catalogue_id": event["catalogue_id"],
-            "workload_name": event["workload_name"],
-        }
+        if event["operation"] == stax_orchestrator.WorkloadOperation.DEPLOY:
+            workload_kwargs = stax_orchestrator.get_deploy_workload_kwargs(event)
+            return stax_orchestrator.CreateWorkloadEvent(**workload_kwargs).__dict__
+
+        if event["operation"] == stax_orchestrator.WorkloadOperation.UPDATE:
+            workload_kwargs = stax_orchestrator.get_update_workload_kwargs(event)
+            return stax_orchestrator.UpdateWorkloadEvent(**workload_kwargs).__dict__
+
+        if event["operation"] == stax_orchestrator.WorkloadOperation.DELETE:
+            workload_kwargs = stax_orchestrator.get_delete_workload_kwargs(event)
+            return stax_orchestrator.DeleteWorkloadEvent(**workload_kwargs).__dict__
+
+        raise stax_orchestrator.WorkloadOperationNotSupported(
+            f"{event['operation']} is not a supported operation."
+        )
 
     except KeyError as missing_key:
-        raise MissingRequiredInput(f"Missing required input key: {missing_key}")
-
-    if "workload_parameters" in event:
-        workload_kwargs["workload_parameters"] = event["workload_parameters"]
-
-    if "workload_tags" in event:
-        workload_kwargs["workload_tags"] = event["workload_tags"]
-
-    return WorkloadEvent(**workload_kwargs).__dict__
+        raise stax_orchestrator.MissingRequiredInput(
+            f"Missing required input key: {missing_key} from the event payload."
+        ) from missing_key
