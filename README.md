@@ -1,6 +1,6 @@
-# stax-orchestrator
+# Stax Orchestrator
 
-This application deploys step functions into your account that you can use to interact with [Stax](https://www.stax.io/) to deploy workloads into your AWS Account.
+This application deploys step functions into your account that you can use to interact with [Stax](https://www.stax.io/) to CUD (create-update-delete) workloads in your AWS Account(s).
 
 Stax provides an open source python [SDK](https://github.com/stax-labs/lib-stax-python-sdk) for use within projects to interact with Stax. We leverage the SDK to create and monitor workload operations within the serverless application.
 
@@ -12,14 +12,21 @@ This project contains source code and supporting files for Stax Orchestrator Ser
 - template.yaml - A template that defines the application's AWS resources.
 - Makefile - Run shell commands using make targets for a smooth developer experience.
 - events - Json files containing test data to run against your application code locally.
+- assets - Diagrams and other assets.
+
+## Stax Orchestrator Workflow Diagram
+
+![Stax Orchestrator Workflow Diagram](assets/StaxOrchestrator.png)
 
 ## Resources
 
 This serverless application deploys the following resources in your AWS Account,
 
-* Create Workload Step Function - Creates a Stax workload and triggers Task Watcher Step Function to monitor the workload deployment status.
+* Workload Step Function - Creates a Stax workload and triggers Task Watcher Step Function to monitor the workload deployment status.
     * Validate Input Lambda - Validates user provided input.
-    * Create Workload Lambda - Invokes Stax Api to create a lambda.
+    * Create Workload Lambda - Invokes Stax Api to create a workload.
+    * Update Workload Lambda - Invokes Stax Api to create a workload.
+    * Delete Workload Lambda - Invokes Stax Api to delete a workload.
 * Task Watcher Step Function - Monitors the lifecycle of a workload task in progress and reports with a success/failure to Create Workload Steop Function.
     * Get Task Status Lambda - Invokes Stax Api to get the status of a workload task.
 
@@ -34,6 +41,16 @@ stax-orchestrator$ make build-app
 The SAM CLI installs dependencies defined in `requirements.txt`, creates a deployment package, and saves it in the `.aws-sam/build` folder. The `make` command `make prepare-lambda-layer-dir` builds the lambda layer directory using the requirements file.
 
 Once you have built the app locally, try running `make run-create-workload-lambda-locally` to test running the workload create lambda locally.
+
+## Stax API Token
+
+Access to Stax Api's via Stax SDK requires an API token (access key and secret) populated in your account for use with Stax Orchestrator application.
+
+Follow Stax's [guide](https://support.stax.io/hc/en-us/articles/4447111085583-Create-an-API-Token) to create the API token. After you create the token, populate the following SSM parameters into your AWS Account,
+
+* `/orchestrator/stax/access/key` - Stax Access Key
+* `/orchestrator/stax/access/key/secret` - Stax Access Key Secret
+
 
 ## Stax Deployment Bucket
 
@@ -83,13 +100,14 @@ You can find more information and examples about filtering Lambda function logs 
 * Deploy a Stax workload [catalogue](https://support.stax.io/hc/en-us/articles/4450989147919-Add-a-Workload-to-the-Workload-Catalog).
     * Remember the Catalogue ID of the catalogue deployed as we will need this to deploy the workload.
 
-* Run `Create Workload Step Function` step function with the following payload,
+* Run `Workload Step Function` step function with the following payload,
     ```
     {
         "aws_account_id": "asd12e3-7c0e-4807-96ee-asd12ec21r2",
         "aws_region": "ap-southeast-2",
         "operation": "deploy",
         "catalogue_id": "b3437e3b-55e3-4060-9dec-042f18dcf789",
+        "catalogue_version_id": "545dca4",
         "workload_name": "orchestrator-stax-demo-vpc",
         "workload_parameters": {
             "Param1": "Value1"
@@ -102,6 +120,34 @@ You can find more information and examples about filtering Lambda function logs 
     * aws_account_id - Stax AWS Account ID (UUID) to deploy workload to.
     * aws_region - The AWS Region to deploy the workload to.
     * catalogue_id - The ID of the catalogue containing workload manifest.
+    * catalogue_version_id (OPTIONAL): Deploy a specific version of the catalogue workload.
     * workload_name - Name of the workload to deploy (must be unique).
     * workload_parameters - Parameters that get passed into cloudformation templates upon workload deployment.
     * workload_tags - Tags to attach to the workload.
+
+## Updating a workload
+
+* Update a Stax workload [catalogue](https://support.stax.io/hc/en-us/articles/4451005420943-Update-a-Workload).
+    * Remember the Catalogue ID and version of the updated catalogue as we will need this to deploy the workload.
+
+* Run `Workload Step Function` step function with the following payload,
+    ```
+    {
+        "operation": "update",
+        "workload_id": "b3437e3b-55e3-4060-9dec-042f18dcf789",
+        "catalogue_version_id": "545dca4"
+    }
+    ```
+    * workload_id - The ID of the workload to update
+    * catalogue_version_id: The version of the catalogue workload to deploy
+
+## Deleting a workload
+
+* Run `Workload Step Function` step function with the following payload,
+    ```
+    {
+        "operation": "delete",
+        "workload_id": "b3437e3b-55e3-4060-9dec-042f18dcf789"
+    }
+    ```
+    * workload_id - The ID of the workload to update
