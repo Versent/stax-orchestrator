@@ -107,7 +107,7 @@ You can find more information and examples about filtering Lambda function logs 
         "aws_region": "ap-southeast-2",
         "operation": "deploy",
         "catalogue_id": "b3437e3b-55e3-4060-9dec-042f18dcf789",
-        "catalogue_version_id": "545dca4",
+        "catalogue_version_id": "69e4a16c-7c7c-48cf-bb8d-312c43fc0563",
         "workload_name": "orchestrator-stax-demo-vpc",
         "workload_parameters": {
             "Param1": "Value1"
@@ -135,7 +135,7 @@ You can find more information and examples about filtering Lambda function logs 
     {
         "operation": "update",
         "workload_id": "b3437e3b-55e3-4060-9dec-042f18dcf789",
-        "catalogue_version_id": "545dca4"
+        "catalogue_version_id": "69e4a16c-7c7c-48cf-bb8d-312c43fc0563"
     }
     ```
     * workload_id - The ID of the workload to update
