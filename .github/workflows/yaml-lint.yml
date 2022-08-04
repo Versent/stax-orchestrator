@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pipenv
-          make install-deps
+          make install-dependencies
       - name: Analysing the code with yamllint
         run: |
           make lint-yaml

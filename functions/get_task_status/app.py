@@ -1,3 +1,6 @@
+"""
+    Get status of a Stax workload task.
+"""
 import logging
 from os import environ
 
@@ -11,12 +14,16 @@ xray_recorder.configure(service="StaxOrchestrator:GetTaskStatus")
 patch_all()
 
 
-def lambda_handler(event, _) -> dict:
-    stax_orchestrator = StaxOrchestrator()
-    try:
-        event["task_info"] = stax_orchestrator.get_task_status(event["task_id"])
-        logging.info(f"task_status: {event['task_info']['Status']}")
-    except:
-        logging.warning(f"Task with ID {event['task_id']} not found!")
-        raise stax_orchestrator.TaskNotFound(f"Task with ID {event['task_id']} not found!")
+def lambda_handler(event: dict, _) -> dict:
+    """
+    Poll for a Stax workload task status
+
+    Args:
+        event (dict): Event data containing workload and task ID
+
+    Returns:
+        dict: Event including task status
+    """
+    event["task_info"] = StaxOrchestrator().get_task_status(event["task_id"])
+
     return event

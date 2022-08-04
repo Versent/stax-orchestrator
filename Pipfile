@@ -9,6 +9,7 @@ pylint = "*"
 isort = "*"
 yamllint = "*"
 cfn-lint = "*"
+statelint = "*"
 
 [packages]
 staxapp = "*"

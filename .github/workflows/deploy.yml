@@ -1,31 +1,50 @@
 ---
-name: Deploy VMS Assembly
+name: Publish to the Serverless Repository
+
+concurrency: 
+  group: production
+  cancel-in-progress: true
+
+env:
+  TAGGED_VERSION: ${{github.ref_name}}
 
 # yamllint disable-line rule:truthy
 on:
   push:
-    branches:
-      - main
+    tags:
+      - v*
 jobs:
   # deploy:
   Deploy:
+    strategy:
+      matrix:
+        python-version: ["3.9"]
     runs-on: ubuntu-latest
+    environment: innovation
     # These permissions are needed to interact
     # with GitHub's OIDC Token endpoint.
     permissions:
       id-token: write
       contents: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          make install-dependencies
 
       - name: Configure AWS credentials from Innovation account
         uses: aws-actions/configure-aws-credentials@v1
         with:
           # yamllint disable-line rule:line-length
-          role-to-assume: arn:aws:iam::272435851616:role/vms-assembly-Role-Q6LP1AD26VER
-          aws-region: ap-southeast-2
+          role-to-assume: "${{ secrets.ROLE_ARN }}"
+          aws-region: "${{ secrets.AWS_REGION }}"
 
       - name: Deploy the awesome app!
         run: |
-          make deploy
+
+          make publish-app
