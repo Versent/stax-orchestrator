@@ -35,7 +35,7 @@ prepare-lambda-layer-dir: clean ## Build lambda layer with shared dependencies
 	pip install -r requirements.txt -t lambda_layer
 	cp -R src/* lambda_layer
 
-build-app: prepare-lambda-layer-dir ## Use docker and sam to build the app locally
+build-app: prepare-lambda-layer-dir ## Use sam to build the app locally
 	sam build
 
 run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a docker container locally
