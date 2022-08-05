@@ -1,6 +1,9 @@
+---
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: Step Functions and lambdas to interact with Stax to CUD (create-update-delete) workloads in your AWS Account(s).
+Description: >
+  Step Functions and lambdas to interact with Stax to CUD (create-update-delete)
+  workloads in your AWS Account(s).
 
 Parameters:
   PythonLoggingLevel:
@@ -17,7 +20,10 @@ Parameters:
 Metadata:
   AWS::ServerlessRepo::Application:
     Name: stax-orchestrator
-    Description: Stax Workloads Orchestrator - Interact with Stax to CUD (create-update-delete) workloads in your AWS Account(s).
+    Description: >-
+      Stax Workloads Orchestrator -
+      Interact with Stax to CUD (create-update-delete)
+      workloads in your AWS Account(s).
     Author: Versent
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE
@@ -228,7 +234,9 @@ Resources:
   StaxOrchestratorLambdaPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      Description: Stax Orchestrator Managed Policy for lambdas to use with AWS Resources.
+      Description: >
+        Stax Orchestrator Managed Policy
+        for lambdas to use with AWS Resources.
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -236,23 +244,29 @@ Resources:
             Action:
               - ssm:GetParameter
             Resource:
+            # yamllint disable rule:line-length
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key/secret
+            # yamllint enable rule:line-length
 
   StaxOrchestratorSfnPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      Description: Stax Orchestrator Managed Policy for step functions to use with AWS Resources.
+      Description: >-
+        Stax Orchestrator Managed Policy for
+        step functions to use with AWS Resources.
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Action:
-            - events:PutTargets
-            - events:PutRule
-            - events:DescribeRule
+              - events:PutTargets
+              - events:PutRule
+              - events:DescribeRule
             Resource:
-            - !Sub arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+            # yamllint disable rule:line-length
+              - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
+            # yamllint enable rule:line-length
           - Effect: Allow
             Action:
               - xray:PutTraceSegments

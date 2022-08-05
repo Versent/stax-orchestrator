@@ -1,0 +1,22 @@
+---
+name: Python Lint
+on: [push]  # yamllint disable-line rule:truthy
+jobs:
+  lint-python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pipenv
+          make install-dependencies
+      - name: Analysing the code with black, isort, pylint
+        run: |
+          make lint

@@ -14,6 +14,12 @@ install-dependencies: ## Install project dependencies using pipenv
 shell: ## Spawn a shell in the current virtual environment
 	pipenv shell
 
+lint-statemachine:
+	pipenv run statelint --ignore=URI statemachines/*
+
+lint-yaml:
+	pipenv run yamllint *.yml
+
 lint: format ## Lint python files with black, pylint and check imports with isort
 	pipenv run isort --check-only --diff functions src
 	pipenv run black --check --diff functions src
@@ -52,6 +58,6 @@ package-app: ## Package and upload application artifacts to the stax deployment 
 	sam package --output-template-file template.packaged.yml --s3-bucket $(ARTIFACT_BUCKET_NAME)
 
 publish-app: build-app package-app ## Publish Stax Orchestrator Application to Serverless Application Repository
-	sam publish --template template.packaged.yml --region ap-southeast-2
+	sam publish --template template.packaged.yml --region $(AWS_REGION) --semantic-version $(TAGGED_VERSION)
 
 .PHONY: clean build-app deploy-stax-orchestrator run-create-workload-lambda-locally prepare-lambda-layer-dir format lint shell install-dependencies help package-app publish-app

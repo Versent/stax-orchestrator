@@ -134,7 +134,7 @@
                     ],
                     "IntervalSeconds": 2,
                     "MaxAttempts": 5,
-                    "BackoffRate": 1
+                    "BackoffRate": 1.0
                 }
             ],
             "End": true

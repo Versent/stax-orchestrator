@@ -7,6 +7,9 @@ verify_ssl = true
 black = "*"
 pylint = "*"
 isort = "*"
+yamllint = "*"
+cfn-lint = "*"
+statelint = "*"
 
 [packages]
 staxapp = "*"
