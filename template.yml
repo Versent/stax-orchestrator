@@ -234,7 +234,7 @@ Resources:
   StaxOrchestratorLambdaPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      Description: >
+      Description: >-
         Stax Orchestrator Managed Policy
         for lambdas to use with AWS Resources.
       PolicyDocument:
