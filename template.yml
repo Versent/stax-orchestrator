@@ -244,10 +244,10 @@ Resources:
             Action:
               - ssm:GetParameter
             Resource:
-            # yamllint disable rule:line-length
+              # yamllint disable rule:line-length
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key/secret
-            # yamllint enable rule:line-length
+              # yamllint enable rule:line-length
 
   StaxOrchestratorSfnPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -264,9 +264,9 @@ Resources:
               - events:PutRule
               - events:DescribeRule
             Resource:
-            # yamllint disable rule:line-length
+              # yamllint disable rule:line-length
               - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
-            # yamllint enable rule:line-length
+              # yamllint enable rule:line-length
           - Effect: Allow
             Action:
               - xray:PutTraceSegments
@@ -311,6 +311,7 @@ Resources:
     Type: AWS::CloudWatch::Dashboard
     Properties:
       DashboardName: StaxOrchestrator
+      # yamllint disable rule:line-length
       DashboardBody: !Sub |
             {
               "widgets": [
@@ -446,6 +447,7 @@ Resources:
                 }
               ]
             }
+      # yamllint disable rule:line-length
 
 Outputs:
   WorkloadArn:
