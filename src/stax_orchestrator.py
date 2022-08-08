@@ -26,12 +26,8 @@ def get_stax_client(client_type: str) -> StaxClient:
         client_type (str): Type of stax client to instantiate (for e.g, workloads)
     """
     ssm_provider = parameters.SSMProvider()
-    StaxConfig.access_key = ssm_provider.get(
-        "/orchestrator/stax/access/key", max_age=21600, decrypt=True
-    )
-    StaxConfig.secret_key = ssm_provider.get(
-        "/orchestrator/stax/access/key/secret", max_age=21600, decrypt=True
-    )
+    StaxConfig.access_key = ssm_provider.get("/orchestrator/stax/access/key", max_age=21600, decrypt=True)
+    StaxConfig.secret_key = ssm_provider.get("/orchestrator/stax/access/key/secret", max_age=21600, decrypt=True)
 
     return StaxClient(client_type)
 
@@ -107,9 +103,7 @@ class StaxOrchestrator:
         s3_resource = boto3.resource("s3")
         catalogue_version = str(uuid4())
         cfn_name = f"{catalogue_version}-{catalogue_name}.yaml"
-        s3_resource.Bucket(bucket_name).upload_file(
-            cloudformation_manifest_path, cfn_name
-        )
+        s3_resource.Bucket(bucket_name).upload_file(cloudformation_manifest_path, cfn_name)
 
         manifest_body = f"""Resources:
         - WorkloadSSM:
@@ -164,9 +158,7 @@ class StaxOrchestrator:
             create_workload_payload["CatalogueVersionId"] = catalogue_version_id
 
         if workload_parameters:
-            create_workload_payload["Parameters"] = self.get_parameters_list(
-                workload_parameters
-            )
+            create_workload_payload["Parameters"] = self.get_parameters_list(workload_parameters)
 
         if workload_tags:
             create_workload_payload["Tags"] = workload_tags
@@ -227,9 +219,7 @@ class StaxOrchestrator:
         Returns:
             dict: Update workload response
         """
-        return self.workload_client.UpdateWorkload(
-            workload_id=workload_id, catalogue_version_id=catalogue_version_id
-        )
+        return self.workload_client.UpdateWorkload(workload_id=workload_id, catalogue_version_id=catalogue_version_id)
 
     def workload_with_name_already_exists(self, workload_name: str) -> bool:
         """Check if a workload with the same name already exists in Stax

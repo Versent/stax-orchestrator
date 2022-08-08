@@ -244,10 +244,10 @@ Resources:
             Action:
               - ssm:GetParameter
             Resource:
-            # yamllint disable rule:line-length
+              # yamllint disable rule:line-length
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key
               - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/access/key/secret
-            # yamllint enable rule:line-length
+              # yamllint enable rule:line-length
 
   StaxOrchestratorSfnPolicy:
     Type: AWS::IAM::ManagedPolicy
@@ -264,9 +264,9 @@ Resources:
               - events:PutRule
               - events:DescribeRule
             Resource:
-            # yamllint disable rule:line-length
+              # yamllint disable rule:line-length
               - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
-            # yamllint enable rule:line-length
+              # yamllint enable rule:line-length
           - Effect: Allow
             Action:
               - xray:PutTraceSegments
@@ -306,6 +306,148 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${GetTaskStatusLambda}
       RetentionInDays: 60
+
+  StaxOrchestratorDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: StaxOrchestrator
+      # yamllint disable rule:line-length
+      DashboardBody: !Sub |
+            {
+              "widgets": [
+                {
+                  "type": "log",
+                  "x": 10,
+                  "y": 6,
+                  "width": 14,
+                  "height": 3,
+                  "properties": {
+                    "query": "SOURCE '/aws/lambda/${CreateWorkloadLambda}' | fields @message\r\n| filter @message like /ERROR/",
+                    "region": "${AWS::Region}",
+                    "stacked": false,
+                    "title": "Create Workload Error Logs",
+                    "view": "table"
+                  }
+                },
+                {
+                  "type": "log",
+                  "x": 10,
+                  "y": 6,
+                  "width": 14,
+                  "height": 3,
+                  "properties": {
+                    "query": "SOURCE '/aws/lambda/${UpdateWorkloadLambda}' | fields @message\r\n| filter @message like /ERROR/",
+                    "region": "${AWS::Region}",
+                    "stacked": false,
+                    "title": "Update Workload Error Logs",
+                    "view": "table"
+                  }
+                },
+                {
+                  "type": "log",
+                  "x": 10,
+                  "y": 6,
+                  "width": 14,
+                  "height": 3,
+                  "properties": {
+                    "query": "SOURCE '/aws/lambda/${DeleteWorkloadLambda}' | fields @message\r\n| filter @message like /ERROR/",
+                    "region": "${AWS::Region}",
+                    "stacked": false,
+                    "title": "Delete Workload Error Logs",
+                    "view": "table"
+                  }
+                },
+                {
+                  "type": "log",
+                  "x": 10,
+                  "y": 6,
+                  "width": 14,
+                  "height": 3,
+                  "properties": {
+                    "query": "SOURCE '/aws/lambda/${GetTaskStatusLambda}' | fields @message\r\n| filter @message like /ERROR/",
+                    "region": "${AWS::Region}",
+                    "stacked": false,
+                    "title": "Get Task Status Error Logs",
+                    "view": "table"
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 0,
+                  "width": 10,
+                  "height": 3,
+                  "properties": {
+                    "view": "singleValue",
+                    "metrics": [
+                      [ "AWS/States", "ExecutionsFailed", "StateMachineArn", "${WorkloadStateMachine}", {"color": "#ff0000"} ],
+                      [ ".", "ExecutionsSucceeded", ".", ".", {"color": "#2ca02c"} ],
+                      [ ".", "ExecutionsAborted", ".", ".", {"color": "#ffa500"} ]
+                    ],
+                    "stat": "Sum",
+                    "setPeriodToTimeRange": true,
+                    "region": "${AWS::Region}",
+                    "title": "WorkloadStateMachine Executions",
+                    "period": 300
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 0,
+                  "width": 10,
+                  "height": 3,
+                  "properties": {
+                    "view": "singleValue",
+                    "metrics": [
+                      [ "AWS/States", "ExecutionsFailed", "StateMachineArn", "${TaskWatcherStateMachine}", {"color": "#ff0000"} ],
+                      [ ".", "ExecutionsSucceeded", ".", ".", {"color": "#2ca02c"} ],
+                      [ ".", "ExecutionsAborted", ".", ".", {"color": "#ffa500"} ]
+                    ],
+                    "stat": "Sum",
+                    "setPeriodToTimeRange": true,
+                    "region": "${AWS::Region}",
+                    "title": "TaskWatcherStateMachine Executions",
+                    "period": 300
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 9,
+                  "width": 10,
+                  "height": 4,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "AWS/States", "ExecutionsSucceeded", "StateMachineArn", "${WorkloadStateMachine}", {"color": "#2ca02c"} ],
+                          [ ".", "ExecutionsFailed", ".", ".", {"color": "#ff0000"} ]
+                      ],
+                      "region": "${AWS::Region}",
+                      "title": "Workload Operations Success Vs Failures"
+                  }
+                },
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 9,
+                  "width": 10,
+                  "height": 4,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "AWS/States", "ExecutionsSucceeded", "StateMachineArn", "${TaskWatcherStateMachine}", {"color": "#2ca02c"} ],
+                          [ ".", "ExecutionsFailed", ".", ".", {"color": "#ff0000"} ]
+                      ],
+                      "region": "${AWS::Region}",
+                      "title": "TaskWatcher Operations Success Vs Failures"
+                  }
+                }
+              ]
+            }
+      # yamllint disable rule:line-length
 
 Outputs:
   WorkloadArn:
