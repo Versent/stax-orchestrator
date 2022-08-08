@@ -41,9 +41,7 @@ def lambda_handler(event: dict, _) -> dict:
             workload_kwargs = stax_orchestrator.get_delete_workload_kwargs(event)
             return stax_orchestrator.DeleteWorkloadEvent(**workload_kwargs).__dict__
 
-        raise stax_orchestrator.WorkloadOperationNotSupported(
-            f"{event['operation']} is not a supported operation."
-        )
+        raise stax_orchestrator.WorkloadOperationNotSupported(f"{event['operation']} is not a supported operation.")
 
     except KeyError as missing_key:
         raise stax_orchestrator.MissingRequiredInput(
