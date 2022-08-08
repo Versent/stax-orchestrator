@@ -1,6 +1,10 @@
 ---
 name: Python Lint
-on: [push]  # yamllint disable-line rule:truthy
+on: 
+  pull_request:
+    # Sequence of patterns matched against refs/heads
+    branches:    
+      - main
 jobs:
   lint-python:
     runs-on: ubuntu-latest
