@@ -24,7 +24,7 @@ def lambda_handler(event: dict, _) -> dict:
     Returns:
         dict: Event including task status
     """
-    logging.debug(f"event: {event}")
+    logging.debug("event: %s", event)
     event["task_info"] = StaxOrchestrator().get_task_status(event["task_id"])
 
     return event
