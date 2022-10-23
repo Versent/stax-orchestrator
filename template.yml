@@ -1,5 +1,5 @@
 ---
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Step Functions and lambdas to interact with Stax to CUD (create-update-delete)
@@ -16,6 +16,27 @@ Parameters:
       - WARNING
       - ERROR
       - CRITICAL
+  DeployWorkloadStateMachine:
+    Type: String
+    Default: "True"
+    Description: Deploy workload state machine to CUD (create-update-delete) workloads.
+    AllowedValues:
+      - "True"
+      - "False"
+  DeployTaskWatcher:
+    Type: String
+    Default: "True"
+    Description: Deploy task state machine to poll Stax and monitor task operations.
+    AllowedValues:
+      - "True"
+      - "False"
+  DeployCloudwatchDashboard:
+    Type: String
+    Default: "False"
+    Description: Deploy cloudwatch dashboard to view stax orchestrator step function metrics and logs.
+    AllowedValues:
+      - "True"
+      - "False"
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -23,7 +44,7 @@ Metadata:
     Description: >-
       Stax Workloads Orchestrator -
       Interact with Stax to CUD (create-update-delete)
-      workloads in your AWS Account(s).
+      workloads and monitor task operations in your AWS Account(s).
     Author: Versent
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE
@@ -33,8 +54,14 @@ Metadata:
     SemanticVersion: 0.0.1
     SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
 
+Conditions:
+  WorkloadStateMachineEnabled: !Equals [!Ref DeployWorkloadStateMachine, "True"]
+  TaskWatcherStateMachineEnabled: !Equals [!Ref DeployTaskWatcher, "True"]
+  CloudwatchDashboardEnabled: !Equals [!Ref DeployCloudwatchDashboard, "True"]
+
 Resources:
   WorkloadStateMachine:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionUri: statemachines/workload.asl.json
@@ -49,6 +76,7 @@ Resources:
       Role: !GetAtt WorkloadStateMachineRole.Arn
 
   WorkloadStateMachineRole:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -77,6 +105,7 @@ Resources:
                   - !Ref TaskWatcherStateMachine
 
   TaskWatcherStateMachine:
+    Condition: TaskWatcherStateMachineEnabled
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionUri: statemachines/task_watcher.asl.json
@@ -87,6 +116,7 @@ Resources:
       Role: !GetAtt TaskWatcherStateMachineRole.Arn
 
   TaskWatcherStateMachineRole:
+    Condition: TaskWatcherStateMachineEnabled
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -108,9 +138,10 @@ Resources:
                   - !GetAtt GetTaskStatusLambda.Arn
 
   ValidateInputLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
-      Description: Validate user input required to create/update workloads
+      Description: Validate user input required to create/update/delete workloads
       CodeUri: functions/validate_input/
       Handler: app.lambda_handler
       Runtime: python3.9
@@ -129,6 +160,7 @@ Resources:
         - AWSXRayDaemonWriteAccess
 
   CreateWorkloadLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
       Description: Invoke Stax Api to create a workload
@@ -136,7 +168,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       Tracing: Active
-      MemorySize: 256
+      MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
       Timeout: 20
@@ -150,6 +182,7 @@ Resources:
         - AWSXRayDaemonWriteAccess
 
   UpdateWorkloadLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
       Description: Invoke Stax Api to update a workload
@@ -157,7 +190,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       Tracing: Active
-      MemorySize: 256
+      MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
       Timeout: 20
@@ -171,6 +204,7 @@ Resources:
         - AWSXRayDaemonWriteAccess
 
   DeleteWorkloadLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
       Description: Invoke Stax Api to delete a workload
@@ -178,7 +212,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       Tracing: Active
-      MemorySize: 256
+      MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
       Timeout: 20
@@ -192,6 +226,7 @@ Resources:
         - AWSXRayDaemonWriteAccess
 
   GetTaskStatusLambda:
+    Condition: TaskWatcherStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
       Description: Get status of a workload task
@@ -215,7 +250,6 @@ Resources:
   StaxLibLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: stax-orchestrator-shared-lib-layer
       ContentUri: lambda_layer
       CompatibleRuntimes:
         - python3.9
@@ -278,36 +312,42 @@ Resources:
               - '*'
 
   ValidateInputLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${ValidateInputLambda}
       RetentionInDays: 60
 
   CreateWorkloadLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${CreateWorkloadLambda}
       RetentionInDays: 60
 
   UpdateWorkloadLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${UpdateWorkloadLambda}
       RetentionInDays: 60
 
   DeleteWorkloadLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${DeleteWorkloadLambda}
       RetentionInDays: 60
 
   GetTaskStatusLambdaLogGroup:
+    Condition: TaskWatcherStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${GetTaskStatusLambda}
       RetentionInDays: 60
 
-  StaxOrchestratorDashboard:
+  StaxOrchestratorCloudwatchDashboard:
+    Condition: CloudwatchDashboardEnabled
     Type: AWS::CloudWatch::Dashboard
     Properties:
       DashboardName: StaxOrchestrator
@@ -447,13 +487,15 @@ Resources:
                 }
               ]
             }
-      # yamllint disable rule:line-length
+      # yamllint enable rule:line-length
 
 Outputs:
   WorkloadArn:
+    Condition: WorkloadStateMachineEnabled
     Description: Stax workload deployer arn
     Value: !Ref WorkloadStateMachine
 
   TaskWatcherArn:
+    Condition: TaskWatcherStateMachineEnabled
     Description: Stax task watcher arn
     Value: !Ref TaskWatcherStateMachine

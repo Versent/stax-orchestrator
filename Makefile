@@ -22,12 +22,12 @@ lint-yaml:
 
 lint: format ## Lint python files with black, pylint and check imports with isort
 	pipenv run isort --check-only --diff functions src
-	pipenv run black --check --diff functions src
+	pipenv run black --check -l 120 --diff functions src
 	pipenv run pylint --fail-under=10.0 functions src
 
 format: ## Format python files with black and fix imports with isort
 	pipenv run isort functions src
-	pipenv run black functions src
+	pipenv run black functions src -l 120
 
 prepare-lambda-layer-dir: clean ## Build lambda layer with shared dependencies
 	mkdir -p lambda_layer

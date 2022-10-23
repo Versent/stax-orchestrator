@@ -128,7 +128,7 @@ You can find more information and examples about filtering Lambda function logs 
 ## Updating a workload
 
 * Update a Stax workload [catalogue](https://support.stax.io/hc/en-us/articles/4451005420943-Update-a-Workload).
-    * Remember the Catalogue ID and version of the updated catalogue as we will need this to deploy the workload.
+    * Remember the Catalogue Version ID of the updated catalogue as we will need this to deploy the workload.
 
 * Run `Workload Step Function` step function with the following payload,
     ```
@@ -139,7 +139,7 @@ You can find more information and examples about filtering Lambda function logs 
     }
     ```
     * workload_id - The ID of the workload to update
-    * catalogue_version_id: The version of the catalogue workload to deploy
+    * catalogue_version_id: The version of the catalogue to update the workload with
 
 ## Deleting a workload
 

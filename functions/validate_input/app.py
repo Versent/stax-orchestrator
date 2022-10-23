@@ -6,6 +6,7 @@ from os import environ
 
 from aws_xray_sdk.core import patch_all, xray_recorder
 
+from constants import WorkloadOperation
 from stax_orchestrator import StaxOrchestrator
 
 logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
@@ -13,7 +14,7 @@ logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 xray_recorder.configure(service="StaxOrchestrator:ValidateInput")
 patch_all()
 
-
+# pylint: disable=inconsistent-return-statements
 def lambda_handler(event: dict, _) -> dict:
     """Validate input to workload state machine
 
@@ -26,18 +27,17 @@ def lambda_handler(event: dict, _) -> dict:
     Raises:
         KeyError: Raised when required event arguments are not present
     """
-    logging.debug(f"event: {event}")
     stax_orchestrator = StaxOrchestrator()
     try:
-        if event["operation"] == stax_orchestrator.WorkloadOperation.DEPLOY:
-            workload_kwargs = stax_orchestrator.get_deploy_workload_kwargs(event)
+        if event["operation"] == WorkloadOperation.CREATE:
+            workload_kwargs = stax_orchestrator.get_create_workload_kwargs(event)
             return stax_orchestrator.CreateWorkloadEvent(**workload_kwargs).__dict__
 
-        if event["operation"] == stax_orchestrator.WorkloadOperation.UPDATE:
+        if event["operation"] == WorkloadOperation.UPDATE:
             workload_kwargs = stax_orchestrator.get_update_workload_kwargs(event)
             return stax_orchestrator.UpdateWorkloadEvent(**workload_kwargs).__dict__
 
-        if event["operation"] == stax_orchestrator.WorkloadOperation.DELETE:
+        if event["operation"] == WorkloadOperation.DELETE:
             workload_kwargs = stax_orchestrator.get_delete_workload_kwargs(event)
             return stax_orchestrator.DeleteWorkloadEvent(**workload_kwargs).__dict__
 

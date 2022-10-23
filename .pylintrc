@@ -1,0 +1,6 @@
+[MESSAGES CONTROL]
+disable=missing-module-docstring,import-error
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=120

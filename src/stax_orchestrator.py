@@ -3,7 +3,6 @@
 """
 import logging
 from dataclasses import dataclass
-from enum import Enum
 from os import environ
 from typing import Optional
 from uuid import UUID, uuid4
@@ -64,13 +63,6 @@ class StaxOrchestrator:
         workload_id: UUID
         catalogue_version_id: UUID
 
-    class WorkloadOperation(str, Enum):
-        """Supported workload operations"""
-
-        DEPLOY = "deploy"
-        UPDATE = "update"
-        DELETE = "delete"
-
     class WorkloadWithNameAlreadyExists(Exception):
         """Raised when workload with same name already exists in Stax"""
 
@@ -81,14 +73,14 @@ class StaxOrchestrator:
         """Raised when workload operation is not one of deploy/update/delete"""
 
     # pylint: disable=too-many-arguments
-    def create_update_catalogue(
+    def deploy_catalogue(
         self,
         bucket_name: str,
         catalogue_name: str,
         cloudformation_manifest_path: str,
         description: str,
-        update_catalogue: bool = False,
         catalogue_id: UUID = None,
+        new_catalogue_version: bool = False,
     ) -> dict:
         """Creates/Updates a Stax Catalogue with given cloudformation template
 
@@ -97,7 +89,7 @@ class StaxOrchestrator:
             catalogue_name (str): Name of the catalogue to create
             cloudformation_manifest_path (str): Local path to the cloudformation manifest
             description (str): Catalogue description
-            update_catalogue (Optional[bool]): True if updating catalogue version.
+            new_catalogue_version (Optional[bool]): True if updating catalogue version.
             catalogue_id (UUID): ID of the catalogue if updating.
         """
         s3_resource = boto3.resource("s3")
@@ -110,7 +102,7 @@ class StaxOrchestrator:
             Type: AWS::Cloudformation
             TemplateURL: s3://{bucket_name}/{cfn_name}
         """
-        if update_catalogue:
+        if new_catalogue_version:
             return self.workload_client.CreateCatalogueVersion(
                 ManifestBody=manifest_body,
                 Version=catalogue_version,
@@ -174,10 +166,7 @@ class StaxOrchestrator:
         Returns:
             list: List of dictionaries containing workload cloudformation parameters
         """
-        parameters_list = []
-        for key, value in workload_parameters.items():
-            parameters_list.append({"Key": key, "Value": value})
-        return parameters_list
+        return [{"Key": key, "Value": value} for key, value in workload_parameters.items()]
 
     def get_task_status(self, task_id: UUID) -> dict:
         """Poll Stax to get status of a given workload task
@@ -219,7 +208,7 @@ class StaxOrchestrator:
         Returns:
             dict: Update workload response
         """
-        return self.workload_client.UpdateWorkload(workload_id=workload_id, catalogue_version_id=catalogue_version_id)
+        return self.workload_client.UpdateWorkload(workload_id=workload_id, CatalogueVersionId=catalogue_version_id)
 
     def workload_with_name_already_exists(self, workload_name: str) -> bool:
         """Check if a workload with the same name already exists in Stax
@@ -254,14 +243,11 @@ class StaxOrchestrator:
             "workload_name": event["workload_name"],
         }
 
-        if "catalogue_version_id" in event:
-            workload_kwargs["catalogue_version_id"] = event["catalogue_version_id"]
+        optional_kwargs = ["catalogue_version_id", "workload_parameters", "workload_tags", "workload_id"]
 
-        if "workload_parameters" in event:
-            workload_kwargs["workload_parameters"] = event["workload_parameters"]
-
-        if "workload_tags" in event:
-            workload_kwargs["workload_tags"] = event["workload_tags"]
+        for optional_kwarg in optional_kwargs:
+            if optional_kwarg in event and event[optional_kwarg]:
+                workload_kwargs[optional_kwarg] = event[optional_kwarg]
 
         return workload_kwargs
 
