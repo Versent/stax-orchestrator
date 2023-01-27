@@ -26,7 +26,7 @@ def lambda_handler(event: dict, _) -> dict:
     Raises:
         KeyError: Raised when required event arguments are not present
     """
-    logging.debug(f"event: {event}")
+
     stax_orchestrator = StaxOrchestrator()
     try:
         if event["operation"] == stax_orchestrator.WorkloadOperation.DEPLOY:
