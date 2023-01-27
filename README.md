@@ -16,7 +16,7 @@ This project contains source code and supporting files for Stax Orchestrator Ser
 
 ## Stax Orchestrator Workflow Diagram
 
-![Stax Orchestrator Workflow Diagram](assets/StaxOrchestrator.png)
+![Stax Orchestrator Workflow Diagram](docs/StaxOrchestrator.png)
 
 ## Resources
 

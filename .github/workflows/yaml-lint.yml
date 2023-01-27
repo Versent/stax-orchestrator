@@ -2,9 +2,7 @@
 name: Yaml Lint
 on: 
   pull_request:
-    # Sequence of patterns matched against refs/heads
-    branches:    
-      - main
+
 jobs:
   lint-yaml:
     runs-on: ubuntu-latest
