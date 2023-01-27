@@ -2,10 +2,8 @@
 name: Lint CloudFormation Templates
 
 on: 
-  pull_request:
-    # Sequence of patterns matched against refs/heads
-    branches:    
-      - main
+  pull_request_target:
+
 
 jobs:
   cloudformation-linter:
