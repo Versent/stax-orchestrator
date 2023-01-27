@@ -40,7 +40,7 @@ The orchestrator requires API keys to be in the AWS account, follow [pre-deploym
 
 This is an optional deployment approach to allow the flexibility to use a forked version of the repository and/or complete feature development and testing.
 
-**We encourage contributions via pull requests, so if there is a feature you have developed and are using, we ant to hear about it**.
+**We encourage contributions via pull requests, so if there is a feature you have developed and are using, we want to hear about it**.
 
 Follow this guide [here](docs/direct_deployment.md) to deploy directly.
 
