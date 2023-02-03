@@ -2,8 +2,7 @@
 name: AWS States Lint
 
 on: 
-  fork:
-  pull_request_target:
+  pull_request:
 
 jobs:
   lint:
