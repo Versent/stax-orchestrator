@@ -9,6 +9,6 @@ catalogue_name = "simple-dynamodb"
 cloudformation_manifest_path = "sample-workload-templates/dynamo.json"
 description = "Dynamodb table for business needs"
 
-deploy_catalogue_response = stax_orchestrator.deploy_catalogue(bucket, catalogue_name, cloudformation_manifest_path, description)
+create_catalogue_response = stax_orchestrator.create_catalogue(bucket, catalogue_name, cloudformation_manifest_path, description)
 
-print(dumps(deploy_catalogue_response, indent=4, sort_keys=True))
+print(dumps(create_catalogue_response, indent=4, sort_keys=True))

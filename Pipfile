@@ -10,12 +10,15 @@ isort = "*"
 yamllint = "*"
 cfn-lint = "*"
 statelint = "*"
+pytest = "*"
+pytest-mock = "*"
+pytest-cov = "*"
 
 [packages]
-staxapp = "*"
-boto3 = "*"
 aws-lambda-powertools = "*"
 aws_xray_sdk = "*"
+boto3 = "*"
+staxapp = "*"
 
 [requires]
 python_version = "3.9"

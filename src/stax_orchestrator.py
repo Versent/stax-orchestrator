@@ -1,5 +1,5 @@
 """
-    Common logic to interact with Stax to deploy/update/delete workloads and monitor task status.
+    Common logic to interact with Stax to create/update/delete workloads and monitor task status.
 """
 import logging
 from dataclasses import dataclass
@@ -31,16 +31,16 @@ def get_stax_client(client_type: str) -> StaxClient:
     return StaxClient(client_type)
 
 
-@dataclass
 class StaxOrchestrator:
-    """Interact with Stax to deploy workloads and monitor workload task status."""
+    """Interact with Stax to create workloads and monitor workload task status."""
 
-    workload_client: StaxClient = get_stax_client("workloads")
-    tasks_client: StaxClient = get_stax_client("tasks")
+    def __init__(self) -> None:
+        self.workload_client: StaxClient = get_stax_client("workloads")
+        self.tasks_client: StaxClient = get_stax_client("tasks")
 
     @dataclass(frozen=True)
     class CreateWorkloadEvent:
-        """Event data containing required information to deploy a workload."""
+        """Event data containing required information to create a workload."""
 
         aws_account_id: UUID
         aws_region: str
@@ -63,24 +63,17 @@ class StaxOrchestrator:
         workload_id: UUID
         catalogue_version_id: UUID
 
-    class WorkloadWithNameAlreadyExists(Exception):
+    class WorkloadWithNameAlreadyExistsException(Exception):
         """Raised when workload with same name already exists in Stax"""
 
-    class MissingRequiredInput(Exception):
-        """Raised when required user inputs are not present"""
-
-    class WorkloadOperationNotSupported(Exception):
-        """Raised when workload operation is not one of deploy/update/delete"""
-
     # pylint: disable=too-many-arguments
-    def deploy_catalogue(
+    def create_catalogue(
         self,
         bucket_name: str,
         catalogue_name: str,
         cloudformation_manifest_path: str,
         description: str,
         catalogue_id: UUID = None,
-        new_catalogue_version: bool = False,
     ) -> dict:
         """Creates/Updates a Stax Catalogue with given cloudformation template
 
@@ -89,7 +82,6 @@ class StaxOrchestrator:
             catalogue_name (str): Name of the catalogue to create
             cloudformation_manifest_path (str): Local path to the cloudformation manifest
             description (str): Catalogue description
-            new_catalogue_version (Optional[bool]): True if updating catalogue version.
             catalogue_id (UUID): ID of the catalogue if updating.
         """
         s3_resource = boto3.resource("s3")
@@ -102,7 +94,7 @@ class StaxOrchestrator:
             Type: AWS::Cloudformation
             TemplateURL: s3://{bucket_name}/{cfn_name}
         """
-        if new_catalogue_version:
+        if catalogue_id:
             return self.workload_client.CreateCatalogueVersion(
                 ManifestBody=manifest_body,
                 Version=catalogue_version,
@@ -125,7 +117,7 @@ class StaxOrchestrator:
         aws_region: str,
         aws_account_id: UUID,
         catalogue_version_id: UUID = None,
-        workload_parameters: Optional[list] = None,
+        workload_parameters: Optional[dict] = None,
         workload_tags: Optional[dict] = None,
     ) -> dict:
         """Create a Stax workload with given catalogue and workload information
@@ -133,11 +125,11 @@ class StaxOrchestrator:
         Args:
             workload_name (str): Name of the workload to create
             catalogue_id (UUID): Catalogue UUID to use to create the worload
-            aws_region (str): The AWS Region to deploy the workload to
-            aws_account_id (UUID): Stax AWS Account UUID to deploy the workload to
+            aws_region (str): The AWS Region to create the workload in
+            aws_account_id (UUID): Stax AWS Account UUID to create the workload in
             catalogue_version_id (Optional[str]): Deploy a certain version of the catalogue
-            workload_parameters (Optional[list], optional): Workload cloudformation parameters
-            workload_tags (Optional[dict], optional): Tags to attach to the workload to be deployed
+            workload_parameters (Optional[dict], optional): Workload cloudformation parameters
+            workload_tags (Optional[dict], optional): Tags to attach to the workload to be created
         """
         create_workload_payload = {
             "Name": workload_name,
@@ -227,14 +219,14 @@ class StaxOrchestrator:
 
         return False
 
-    def get_deploy_workload_kwargs(self, event: dict) -> dict:
-        """Get required workload arguments from the event for deploy operation
+    def get_create_workload_kwargs(self, event: dict) -> dict:
+        """Get required workload arguments from the event for create operation
 
         Args:
             event (dict): Details about the workload to be deployed
 
         Returns:
-            dict: Dictionary of deploy workload keyword arguments.
+            dict: Dictionary of create workload keyword arguments.
         """
         workload_kwargs = {
             "aws_account_id": event["aws_account_id"],

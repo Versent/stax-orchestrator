@@ -6,7 +6,7 @@ from os import environ
 
 from aws_xray_sdk.core import patch_all, xray_recorder
 
-from stax_orchestrator import StaxOrchestrator
+from src.stax_orchestrator import StaxOrchestrator
 
 logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 
@@ -19,7 +19,7 @@ def lambda_handler(event: dict, _) -> dict:
     stax_orchestrator = StaxOrchestrator()
 
     if stax_orchestrator.workload_with_name_already_exists(event["workload_name"]):
-        raise stax_orchestrator.WorkloadWithNameAlreadyExists(
+        raise stax_orchestrator.WorkloadWithNameAlreadyExistsException(
             f"Workload with name {event['workload_name']} already exists"
         )
 

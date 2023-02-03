@@ -6,7 +6,7 @@ from os import environ
 
 from aws_xray_sdk.core import patch_all, xray_recorder
 
-from stax_orchestrator import StaxOrchestrator
+from src.stax_orchestrator import StaxOrchestrator
 
 logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 
@@ -16,4 +16,5 @@ patch_all()
 
 def lambda_handler(event: dict, _) -> dict:
     """Update Stax Workloads Lambda Handler"""
+
     return StaxOrchestrator().update_workload(**event)

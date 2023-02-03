@@ -1,6 +1,7 @@
 SHELL = /bin/bash
 SHELLFLAGS = -ex
 
+CURRENT_DIRECTORY        =  $(shell pwd)
 ARTIFACT_BUCKET_NAME     := $(shell aws ssm get-parameter --name /orchestrator/stax/artifact/bucket/name --query Parameter.Value --output text)
 GIT_HASH                 ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH               ?= $(shell git rev-parse --abbrev-ref HEAD)
@@ -14,20 +15,26 @@ install-dependencies: ## Install project dependencies using pipenv
 shell: ## Spawn a shell in the current virtual environment
 	pipenv shell
 
-lint-statemachine:
+lint-statemachine: ## Lint step function definition files using statelint
 	pipenv run statelint --ignore=URI statemachines/*
 
-lint-yaml:
+lint-yaml: ## Run yamllint against all .yml files in the current directory
 	pipenv run yamllint *.yml
 
 lint: format ## Lint python files with black, pylint and check imports with isort
-	pipenv run isort --check-only --diff functions src
-	pipenv run black --check -l 120 --diff functions src
+	pipenv run isort --check-only --diff functions src tests
+	pipenv run black --check -l 119 --diff functions src tests
 	pipenv run pylint --fail-under=10.0 functions src
 
 format: ## Format python files with black and fix imports with isort
-	pipenv run isort functions src
-	pipenv run black functions src -l 120
+	pipenv run isort functions src tests
+	pipenv run black functions src tests -l 119
+
+test:
+	export AWS_XRAY_SDK_ENABLED=false && pipenv run python -m pytest -vvv \
+		--cov-report term-missing \
+		--cov=. \
+		tests/
 
 prepare-lambda-layer-dir: clean ## Build lambda layer with shared dependencies
 	mkdir -p lambda_layer
@@ -42,9 +49,9 @@ run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a 
 	sam local invoke CreateWorkloadLambda -e events/create_workload_innovation.json
 
 clean: ## Cleanup local artifacts
-	rm -rf requirements.txt lambda_layer template.packaged.yml
+	rm -rf requirements.txt lambda_layer template.packaged.yml .aws-sam
 
-deploy-stax-orchestrator: clean lint build-app package-app ## Deploy Stax Orchestrator
+deploy-stax-orchestrator: clean build-app package-app ## Deploy Stax Orchestrator
 	$(info [+] Deploying Stax Orchestrator...)
 	@sam deploy --no-fail-on-empty-changeset \
 		--stack-name orchestrator-stax \
@@ -60,4 +67,4 @@ package-app: ## Package and upload application artifacts to the stax deployment 
 publish-app: build-app package-app ## Publish Stax Orchestrator Application to Serverless Application Repository
 	sam publish --template template.packaged.yml --region $(AWS_REGION) --semantic-version $(TAGGED_VERSION)
 
-.PHONY: clean build-app deploy-stax-orchestrator run-create-workload-lambda-locally prepare-lambda-layer-dir format lint shell install-dependencies help package-app publish-app
+.PHONY: clean build-app deploy-stax-orchestrator run-create-workload-lambda-locally prepare-lambda-layer-dir format lint shell install-dependencies help package-app publish-app lint-statemachine lint-yaml
