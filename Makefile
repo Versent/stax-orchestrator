@@ -29,6 +29,8 @@ format: ## Format python files with black and fix imports with isort
 	pipenv run isort functions src
 	pipenv run black functions src
 
+
+# Followed https://github.com/aws/aws-sam-cli/issues/2419
 pre:
 	mkdir -p lambda_layer
 	cp Makefile lambda_layer/
