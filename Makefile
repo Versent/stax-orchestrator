@@ -29,15 +29,20 @@ format: ## Format python files with black and fix imports with isort
 	pipenv run isort functions src
 	pipenv run black functions src
 
-build-StaxLibLayer: clean install-dependencies ## Build lambda layer with shared dependencies
+pre:
 	mkdir -p lambda_layer
-	pipenv run pip freeze > requirements.txt
 	cp Makefile lambda_layer/
-	pipenv run pip install -r requirements.txt -t lambda_layer
-	$(shell echo `pwd`)
-	@cp -r src/* lambda_layer/*
 
-build-app: build-StaxLibLayer ## Use sam to build the app locally
+
+build-StaxLibLayer: clean install-dependencies ## Build lambda layer with shared dependencies
+	pipenv run pip freeze > requirements.txt
+	pipenv run pip install \
+		--isolated \
+		--disable-pip-version-check \
+		-Ur requirements.txt -t $(ARTIFACTS_DIR)/python
+	cp -f ./requirements.txt $(ARTIFACTS_DIR)/python/
+
+build-app: pre ## Use sam to build the app locally
 	sam build
 
 run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a docker container locally
