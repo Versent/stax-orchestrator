@@ -9,7 +9,7 @@ help: ## Get help about Makefile commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 install-dependencies: ## Install project dependencies using pipenv
-	pipenv install --dev
+	pipenv install
 
 shell: ## Spawn a shell in the current virtual environment
 	pipenv shell
@@ -29,13 +29,15 @@ format: ## Format python files with black and fix imports with isort
 	pipenv run isort functions src
 	pipenv run black functions src
 
-prepare-lambda-layer-dir: clean ## Build lambda layer with shared dependencies
+build-StaxLibLayer: clean install-dependencies ## Build lambda layer with shared dependencies
 	mkdir -p lambda_layer
-	pipenv requirements > requirements.txt
-	pip install -r requirements.txt -t lambda_layer
-	cp -R src/* lambda_layer
+	pipenv run pip freeze > requirements.txt
+	cp Makefile lambda_layer/
+	pipenv run pip install -r requirements.txt -t lambda_layer
+	$(shell echo `pwd`)
+	@cp -r src/* lambda_layer/*
 
-build-app: prepare-lambda-layer-dir ## Use sam to build the app locally
+build-app: build-StaxLibLayer ## Use sam to build the app locally
 	sam build
 
 run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a docker container locally

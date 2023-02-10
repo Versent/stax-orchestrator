@@ -221,7 +221,7 @@ Resources:
         - python3.9
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: makefile
       BuildArchitecture: arm64
 
   StaxLibLayerPermission:
