@@ -50,7 +50,7 @@ run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a 
 clean: ## Cleanup local artifacts
 	rm -rf requirements.txt template.packaged.yml .aws-sam
 
-deploy-stax-orchestrator: clean build-app package-app ## Deploy Stax Orchestrator
+deploy-stax-orchestrator: clean lint build-app package-app ## Deploy Stax Orchestrator
 	$(info [+] Deploying Stax Orchestrator...)
 	@sam deploy --no-fail-on-empty-changeset \
 		--stack-name orchestrator-stax \
