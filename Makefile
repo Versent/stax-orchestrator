@@ -8,6 +8,9 @@ GIT_BRANCH               ?= $(shell git rev-parse --abbrev-ref HEAD)
 help: ## Get help about Makefile commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(firstword $(MAKEFILE_LIST)) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
+install-dev-dependencies: ## Install project dependencies (including dev dependencies) using pipenv
+	pipenv install --dev
+
 install-dependencies: ## Install project dependencies using pipenv
 	pipenv install
 
@@ -29,31 +32,25 @@ format: ## Format python files with black and fix imports with isort
 	pipenv run isort functions src
 	pipenv run black functions src
 
-
-# Followed https://github.com/aws/aws-sam-cli/issues/2419
-pre:
-	mkdir -p lambda_layer
-	cp Makefile lambda_layer/
-
-
-build-StaxLibLayer: clean install-dependencies ## Build lambda layer with shared dependencies
+build-StaxLibLayer: clean install-dependencies ## Build lambda layer with dependencies and src files
 	pipenv run pip freeze > requirements.txt
-	pipenv run pip install \
+	mkdir -p "$(ARTIFACTS_DIR)/python"
+	cp ./src/*.py "$(ARTIFACTS_DIR)/python"
+	pipenv run python -m pip install \
 		--isolated \
 		--disable-pip-version-check \
 		-Ur requirements.txt -t $(ARTIFACTS_DIR)/python
-	cp -f ./requirements.txt $(ARTIFACTS_DIR)/python/
 
-build-app: pre ## Use sam to build the app locally
+build-app: ## Use sam cli to build the app
 	sam build
 
 run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a docker container locally
 	sam local invoke CreateWorkloadLambda -e events/create_workload_innovation.json
 
 clean: ## Cleanup local artifacts
-	rm -rf requirements.txt lambda_layer template.packaged.yml
+	rm -rf requirements.txt template.packaged.yml .aws-sam
 
-deploy-stax-orchestrator: clean lint build-app package-app ## Deploy Stax Orchestrator
+deploy-stax-orchestrator: clean build-app package-app ## Deploy Stax Orchestrator
 	$(info [+] Deploying Stax Orchestrator...)
 	@sam deploy --no-fail-on-empty-changeset \
 		--stack-name orchestrator-stax \
@@ -69,4 +66,4 @@ package-app: ## Package and upload application artifacts to the stax deployment 
 publish-app: build-app package-app ## Publish Stax Orchestrator Application to Serverless Application Repository
 	sam publish --template template.packaged.yml --region $(AWS_REGION) --semantic-version $(TAGGED_VERSION)
 
-.PHONY: clean build-app deploy-stax-orchestrator run-create-workload-lambda-locally prepare-lambda-layer-dir format lint shell install-dependencies help package-app publish-app
+.PHONY: clean build-app build-StaxLibLayer deploy-stax-orchestrator run-create-workload-lambda-locally format lint shell install-dependencies install-dev-dependencies help package-app publish-app

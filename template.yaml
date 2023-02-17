@@ -216,7 +216,7 @@ Resources:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: stax-orchestrator-shared-lib-layer
-      ContentUri: lambda_layer
+      ContentUri: .
       CompatibleRuntimes:
         - python3.9
       RetentionPolicy: Delete
