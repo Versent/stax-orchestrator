@@ -13,12 +13,13 @@ statelint = "*"
 pytest = "*"
 pytest-mock = "*"
 pytest-cov = "*"
+dill = "*"
 
 [packages]
 aws-lambda-powertools = "*"
 aws_xray_sdk = "*"
 boto3 = "*"
-staxapp = "*"
-
+staxapp = "*" 
+ 
 [requires]
 python_version = "3.9"

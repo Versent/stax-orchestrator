@@ -264,7 +264,7 @@ Resources:
     Properties:
       Description: Lambda layer containing dependencies for stax orchestrator lambda functions
       LicenseInfo: Available under the Apache license.
-      ContentUri: lambda_layer
+      ContentUri: .
       CompatibleArchitectures:
         - arm64
       CompatibleRuntimes:
