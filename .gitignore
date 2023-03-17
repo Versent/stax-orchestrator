@@ -244,3 +244,8 @@ $RECYCLE.BIN/
 
 # sam
 *.packaged.*
+
+# coverage
+.coverage
+coverage-reports/
+coverage/

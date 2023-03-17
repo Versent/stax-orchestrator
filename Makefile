@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 SHELLFLAGS = -ex
 
-ARTIFACT_BUCKET_NAME     := $(shell aws ssm get-parameter --name /orchestrator/stax/artifact/bucket/name --query Parameter.Value --output text)
+ARTIFACT_BUCKET_NAME     := $(shell aws ssm get-parameter --name /orchestrator/stax/artifact/bucket/name --query Parameter.Value --output text --with-decryption)
 GIT_HASH                 ?= $(shell git rev-parse --short HEAD)
 GIT_BRANCH               ?= $(shell git rev-parse --abbrev-ref HEAD)
 
@@ -32,10 +32,20 @@ format: ## Format python files with black and fix imports with isort
 	pipenv run isort functions src tests
 	pipenv run black functions src tests -l 119
 
+test:
+	export AWS_XRAY_SDK_ENABLED=False && pipenv run python -m pytest -vvvv \
+		--cov-config=.coveragerc \
+		--cov-report xml:coverage-reports/coverage-report.xml \
+		--cov-fail-under=100 \
+		--cov-report term-missing \
+		--cov=. \
+		tests/
+
 build-StaxLibLayer: clean install-dependencies ## Build lambda layer with dependencies and src files
 	pipenv run pip freeze > requirements.txt
 	mkdir -p "$(ARTIFACTS_DIR)/python"
-	cp ./src/*.py "$(ARTIFACTS_DIR)/python"
+	mkdir -p "$(ARTIFACTS_DIR)/python/src"
+	cp ./src/*.py "$(ARTIFACTS_DIR)/python/src"
 	pipenv run python -m pip install \
 		--isolated \
 		--disable-pip-version-check \
@@ -50,7 +60,7 @@ run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a 
 clean: ## Cleanup local artifacts
 	rm -rf requirements.txt template.packaged.yml .aws-sam
 
-deploy-stax-orchestrator: clean lint build-app package-app ## Deploy Stax Orchestrator
+deploy-stax-orchestrator: clean build-app package-app ## Deploy Stax Orchestrator
 	$(info [+] Deploying Stax Orchestrator...)
 	@sam deploy --no-fail-on-empty-changeset \
 		--stack-name orchestrator-stax \

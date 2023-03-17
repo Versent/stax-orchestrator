@@ -23,3 +23,6 @@ staxapp = "*"
  
 [requires]
 python_version = "3.9"
+
+[scripts]
+create-ssm-parameters = "python examples/create_ssm_parameters.py"

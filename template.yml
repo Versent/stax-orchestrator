@@ -158,7 +158,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       MemorySize: 128
-      Timeout: 20
+      Timeout: 300
       Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
       Layers:
         - !Ref StaxLibLayer
@@ -184,7 +184,7 @@ Resources:
       MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
-      Timeout: 20
+      Timeout: 300
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
@@ -206,7 +206,7 @@ Resources:
       MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
-      Timeout: 20
+      Timeout: 300
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
@@ -228,7 +228,7 @@ Resources:
       MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
-      Timeout: 20
+      Timeout: 300
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
@@ -246,7 +246,7 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       MemorySize: 128
-      Timeout: 20
+      Timeout: 300
       Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
       Layers:
         - !Ref StaxLibLayer
@@ -271,7 +271,7 @@ Resources:
         - python3.9
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: makefile
       BuildArchitecture: arm64
 
   StaxLibLayerPermission:

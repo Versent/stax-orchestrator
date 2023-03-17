@@ -21,7 +21,7 @@ class TestStaxOrchestrator:
         exec_result = stax_orchestrator.get_task_status("some-id")
 
         # validate
-        get_stax_client_mock.assert_has_calls([mocker.call("workloads"), mocker.call("tasks")])
+        get_stax_client_mock.assert_called_once_with("tasks")
         assert exec_result == get_stax_client_mock.return_value.ReadTask.return_value
 
     def test_create_catalogue_item(self, mocker):

@@ -27,7 +27,7 @@
             "Choices": [
                 {
                     "Variable": "$.operation",
-                    "StringEquals": "deploy",
+                    "StringEquals": "create",
                     "Next": "Create Workload"
                 },
                 {
