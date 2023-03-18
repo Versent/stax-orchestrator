@@ -5,11 +5,13 @@
 
 Inorder to use Stax to deploy workloads, we need to use s3 bucket accessible by Stax to store our artifacts, our cloudformation templates and package dependencies.
 
-Stax has a workload `stax-deployment-bucket` manifest deployed in every installation that we can deploy to then start using the s3 bucket to store artifacts. Follow Stax's [guide](https://support.stax.io/hc/en-us/articles/4450989147919-Add-a-Workload-to-the-Workload-Catalog#:~:text=If%20you%20need%20to%20upload%20artifacts%20that%20are%20referenced%20by%20your%20Manifest%2C%20such%20as%20CloudFormation%20templates%2C%20you%20must%3A) to get started.
+Stax provides a workload `stax-deployment-bucket` manifest deployed in every installation (AU1, US1, EU1) that we can deploy to then start using the s3 bucket to store artifacts. Follow Stax's [guide](https://support.stax.io/hc/en-us/articles/4450989147919-Add-a-Workload-to-the-Workload-Catalog#:~:text=If%20you%20need%20to%20upload%20artifacts%20that%20are%20referenced%20by%20your%20Manifest%2C%20such%20as%20CloudFormation%20templates%2C%20you%20must%3A) to get started.
+
+For workload parameter `StaxRootAccountId` enter the Stax root AWS Account ID from your current installation which can be found [here](https://support.stax.io/hc/en-us/articles/4537150525071-Stax-Installation-Regions). This is required for Stax to `GET` catalogue manifests deployed in the s3 bucket.
 
 After you deploy the `stax-deployment-bucket` workload,
 
-* Store the name of the bucket in a Ssm parameter with path `/orchestrator/stax/artifact/bucket/name` which will be consumed by Stax Orchestrator.
+* Store the name of the bucket in a Ssm parameter with path `/orchestrator/stax/artifact/bucket/name` which will be consumed by Stax Orchestrator. An example script can be found in `examples/create_ssm_parameters.py` which can be used to populate SSM parameters.
 * Add a [policy](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html#:~:text=%7B%0A%20%20%20%20%22Version%22%3A%20%222012,aws%3ASourceAccount%22%3A%20%22123456789012%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%5D%0A%7D) to allow AWS's Serverless Service access the bucket to get artifacts.
 
 ## Deploying a workload
