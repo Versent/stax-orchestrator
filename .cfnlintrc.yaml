@@ -1,4 +1,5 @@
 templates:
   - template.yml
 ignore_templates:
-  - cloudformation/vpc.yaml
+  # Ignore the example templates
+  - examples/cloudformation/vpc.yaml

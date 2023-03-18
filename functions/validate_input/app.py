@@ -28,6 +28,7 @@ def lambda_handler(event: dict, _) -> dict:
     Raises:
         KeyError: Raised when required event arguments are not present
     """
+
     stax_orchestrator = StaxOrchestrator()
 
     if event["operation"] == WorkloadOperation.CREATE:
