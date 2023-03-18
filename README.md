@@ -58,7 +58,9 @@ Inorder to use Stax to deploy workloads, we need to use s3 bucket accessible by 
 
 Stax provides a workload `stax-deployment-bucket` manifest deployed in every installation (AU1, US1, EU1) that we can deploy to then start using the s3 bucket to store artifacts. Follow Stax's [guide](https://support.stax.io/hc/en-us/articles/4450989147919-Add-a-Workload-to-the-Workload-Catalog#:~:text=If%20you%20need%20to%20upload%20artifacts%20that%20are%20referenced%20by%20your%20Manifest%2C%20such%20as%20CloudFormation%20templates%2C%20you%20must%3A) to get started.
 
-For workload parameter `StaxRootAccountId` enter the Stax root AWS Account ID from your current installation which can be found [here](https://support.stax.io/hc/en-us/articles/4537150525071-Stax-Installation-Regions). This is required for Stax to `GET` catalogue manifests deployed in the s3 bucket. The name of the bucket is stored in an Ssm parameter with path `/orchestrator/stax/artifact/bucket/name` which will be consumed by Stax Orchestrator.
+For workload parameter `StaxRootAccountId` enter the Stax root AWS Account ID from your current installation which can be found [here](https://support.stax.io/hc/en-us/articles/4537150525071-Stax-Installation-Regions). This is required for Stax to `GET` catalogue manifests deployed in the s3 bucket.
+
+Store the name of the bucket in a Ssm parameter with path `/orchestrator/stax/artifact/bucket/name` which will be consumed by Stax Orchestrator. The bucket will be used to store artifacts. An example script can be found in `examples/create_ssm_parameters.py` which can be used to populate SSM parameters.
 
 After you deploy the `stax-deployment-bucket` workload,
 
