@@ -19,7 +19,7 @@ Parameters:
   DeployWorkloadStateMachine:
     Type: String
     Description: Deploy workload state machine to CUD (create-update-delete) workloads.
-    Default: "true"
+    Default: "false"
     AllowedValues:
       - "true"
       - "false"
@@ -166,11 +166,10 @@ Resources:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
       Architectures:
-        # Think about if this is gonna work for everyone
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
 
   CreateWorkloadLambda:
     Condition: WorkloadStateMachineEnabled
@@ -192,7 +191,7 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
 
   UpdateWorkloadLambda:
     Condition: WorkloadStateMachineEnabled
@@ -214,7 +213,7 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
 
   DeleteWorkloadLambda:
     Condition: WorkloadStateMachineEnabled
@@ -236,7 +235,7 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
 
   GetTaskStatusLambda:
     Type: AWS::Serverless::Function
@@ -257,7 +256,7 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
 
   StaxLibLayer:
     Type: AWS::Serverless::LayerVersion

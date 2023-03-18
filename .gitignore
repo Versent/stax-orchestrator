@@ -155,6 +155,8 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+coverage-reports/
+coverage/
 
 # Translations
 *.mo
@@ -244,8 +246,3 @@ $RECYCLE.BIN/
 
 # sam
 *.packaged.*
-
-# coverage
-.coverage
-coverage-reports/
-coverage/
