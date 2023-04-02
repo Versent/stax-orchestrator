@@ -5,22 +5,22 @@ verify_ssl = true
 
 [dev-packages]
 black = "*"
-pylint = "*"
-isort = "*"
-yamllint = "*"
 cfn-lint = "*"
-statelint = "*"
-pytest = "*"
-pytest-mock = "*"
-pytest-cov = "*"
 dill = "*"
+isort = "*"
+pylint = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-mock = "*"
+statelint = "*"
+yamllint = "*"
 
 [packages]
-aws-lambda-powertools = "*"
 aws_xray_sdk = "*"
+aws-lambda-powertools = "*"
 boto3 = "*"
-staxapp = "*" 
- 
+staxapp = "*"
+
 [requires]
 python_version = "3.9"
 

@@ -1,5 +1,5 @@
 [MESSAGES CONTROL]
-disable=missing-module-docstring,import-error
+disable=missing-module-docstring
 
 [FORMAT]
 # Maximum number of characters on a single line.
