@@ -15,7 +15,6 @@ xray_recorder.configure(service="StaxOrchestrator:ValidateInput")
 patch_all()
 
 
-# pylint: disable=inconsistent-return-statements
 def lambda_handler(event: dict, _) -> dict:
     """Validate input to workload state machine
 

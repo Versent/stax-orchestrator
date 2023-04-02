@@ -32,7 +32,7 @@ format: ## Format python files with black and fix imports with isort
 	pipenv run isort functions src tests
 	pipenv run black functions src tests -l 119
 
-test:
+test: ## Run python unit tests
 	export AWS_XRAY_SDK_ENABLED=False && pipenv run python -m pytest -vvvv \
 		--cov-config=.coveragerc \
 		--cov-report xml:coverage-reports/coverage-report.xml \
@@ -54,13 +54,13 @@ build-StaxLibLayer: clean install-dependencies ## Build lambda layer with depend
 build-app: ## Use sam cli to build the app
 	sam build
 
-run-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a docker container locally
+invoke-create-workload-lambda-locally: ## Invoke CreateWorkloadLambda running in a docker container locally
 	sam local invoke CreateWorkloadLambda -e events/create_workload_innovation.json
 
 clean: ## Cleanup local artifacts
 	rm -rf requirements.txt template.packaged.yml .aws-sam
 
-deploy-stax-orchestrator: clean build-app package-app ## Deploy Stax Orchestrator
+deploy-stax-orchestrator: clean build-app package-app ## Deploy Stax Orchestrator to AWS
 	$(info [+] Deploying Stax Orchestrator...)
 	@sam deploy --no-fail-on-empty-changeset \
 		--stack-name orchestrator-stax \
@@ -76,4 +76,4 @@ package-app: ## Package and upload application artifacts to the stax deployment 
 publish-app: build-app package-app ## Publish Stax Orchestrator Application to Serverless Application Repository
 	sam publish --template template.packaged.yml --region $(AWS_REGION) --semantic-version $(TAGGED_VERSION)
 
-.PHONY: clean build-app build-StaxLibLayer deploy-stax-orchestrator run-create-workload-lambda-locally format lint shell install-dependencies install-dev-dependencies help package-app publish-app
+.PHONY: clean build-app build-StaxLibLayer deploy-stax-orchestrator invoke-create-workload-lambda-locally format lint shell install-dependencies install-dev-dependencies help package-app publish-app test lint-yaml lint-statemachine
