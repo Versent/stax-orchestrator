@@ -18,29 +18,57 @@ Parameters:
       - CRITICAL
   DeployWorkloadStateMachine:
     Type: String
-    Description: Deploy workload state machine to CUD (create-update-delete) workloads.
+    Description: >-
+      Deploy workload state machine to CUD (create-update-delete) workloads.
     Default: "false"
     AllowedValues:
       - "true"
       - "false"
   DeployWorkloadCloudwatchDashboard:
     Type: String
-    Description: Deploy workload cloudwatch dashboard to view stax orchestrator step function metrics and logs.
+    Description: >-
+      Deploy workload cloudwatch dashboard to view stax orchestrator
+      step function metrics and logs.
     Default: "false"
     AllowedValues:
       - "true"
       - "false"
   DeployTaskWatcherCloudwatchDashboard:
     Type: String
-    Description: Deploy workload cloudwatch dashboard to view stax orchestrator step function metrics and logs.
+    Description: >-
+      Deploy workload cloudwatch dashboard to view stax orchestrator
+      step function metrics and logs.
     Default: "false"
     AllowedValues:
       - "true"
       - "false"
   LambdaLogGroupRetentionInDays:
     Type: Number
-    Description: Number of days to retain lambda function logs; applies to all lambda functions in this template
-    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 2192, 2557, 2922, 3288, 3653]
+    Description: >-
+      Number of days to retain lambda function logs;
+      applies to all lambda functions in this template
+    AllowedValues:
+      - 1
+      - 3
+      - 5
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+      - 120
+      - 150
+      - 180
+      - 365
+      - 400
+      - 545
+      - 731
+      - 1827
+      - 2192
+      - 2557
+      - 2922
+      - 3288
+      - 3653
     Default: 60
   EnableStateMachineTracing:
     Type: String
@@ -59,8 +87,12 @@ Parameters:
 
 Conditions:
   WorkloadStateMachineEnabled: !Equals [!Ref DeployWorkloadStateMachine, "true"]
-  WorkloadCloudwatchDashboardEnabled: !And [!Equals [!Ref DeployWorkloadCloudwatchDashboard, "true"], Condition:  WorkloadStateMachineEnabled]
-  TaskWatcherCloudwatchDashboardEnabled: !Equals [!Ref DeployTaskWatcherCloudwatchDashboard, "true"]
+  WorkloadCloudwatchDashboardEnabled: !And
+    - !Equals [!Ref DeployWorkloadCloudwatchDashboard, "true"]
+    - Condition: WorkloadStateMachineEnabled
+  TaskWatcherCloudwatchDashboardEnabled: !Equals
+    - !Ref DeployTaskWatcherCloudwatchDashboard
+    - "true"
   StateMachineTracingEnabled: !Equals [!Ref EnableStateMachineTracing, "true"]
   LambdaTracingEnabled: !Equals [!Ref EnableLambdaTracing, "true"]
 
@@ -153,7 +185,8 @@ Resources:
     Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
-      Description: Validate user input required to create/update/delete workloads
+      Description: >-
+        Validate user input required to create/update/delete workloads
       CodeUri: functions/validate_input/
       Handler: app.lambda_handler
       Runtime: python3.9
@@ -169,7 +202,10 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   CreateWorkloadLambda:
     Condition: WorkloadStateMachineEnabled
@@ -191,7 +227,10 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   UpdateWorkloadLambda:
     Condition: WorkloadStateMachineEnabled
@@ -213,7 +252,10 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   DeleteWorkloadLambda:
     Condition: WorkloadStateMachineEnabled
@@ -235,7 +277,10 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   GetTaskStatusLambda:
     Type: AWS::Serverless::Function
@@ -256,12 +301,17 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - !If [LambdaTracingEnabled, arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess, !Ref AWS::NoValue]
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   StaxLibLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      Description: Lambda layer containing dependencies for stax orchestrator lambda functions
+      Description: >-
+        Lambda layer containing dependencies for stax
+        orchestrator lambda functions
       LicenseInfo: Available under the Apache license.
       ContentUri: .
       CompatibleArchitectures:

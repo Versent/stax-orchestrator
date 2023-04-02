@@ -30,6 +30,7 @@ def get_stax_client(client_type: str) -> StaxClient:
 
     return StaxClient(client_type)
 
+
 class StaxOrchestrator:
     """Interact with Stax to create workloads and monitor workload task status."""
 
@@ -37,14 +38,16 @@ class StaxOrchestrator:
     _tasks_client: StaxClient = None
 
     @property
-    def workload_client(self):
+    def workload_client(self) -> StaxClient:
+        """Initialize and return stax workload client object"""
         if not self._workload_client:
             self._workload_client = get_stax_client("workloads")
 
         return self._workload_client
 
     @property
-    def tasks_client(self):
+    def tasks_client(self) -> StaxClient:
+        """Initialize and return stax tasks client object"""
         if not self._tasks_client:
             self._tasks_client = get_stax_client("tasks")
 
