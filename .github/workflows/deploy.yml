@@ -1,7 +1,7 @@
 ---
 name: Publish to the Serverless Repository
 
-concurrency: 
+concurrency:
   group: production
   cancel-in-progress: true
 
@@ -9,10 +9,8 @@ env:
   TAGGED_VERSION: ${{github.ref_name}}
 
 # yamllint disable-line rule:truthy
-on:
-  push:
-    tags:
-      - "*"
+on: push
+
 jobs:
   # deploy:
   Deploy:

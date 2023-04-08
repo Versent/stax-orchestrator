@@ -85,6 +85,22 @@ Parameters:
       - "true"
       - "false"
 
+Metadata:
+  AWS::ServerlessRepo::Application:
+    Name: stax-orchestrator
+    Description: >-
+      Stax Workloads Orchestrator -
+      Interact with Stax to CUD (create-update-delete)
+      workloads in your AWS Account(s).
+    Author: Versent
+    SpdxLicenseId: Apache-2.0
+    LicenseUrl: LICENSE
+    ReadmeUrl: README.md
+    Labels: ['AWS', 'Stax', 'Serverless', 'Lambda', 'StepFunction', 'Orchestrator']
+    HomePageUrl: https://github.com/Versent/stax-orchestrator.git
+    SemanticVersion: 0.0.1
+    SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
+
 Conditions:
   WorkloadStateMachineEnabled: !Equals [!Ref DeployWorkloadStateMachine, "true"]
   WorkloadCloudwatchDashboardEnabled: !And
@@ -309,6 +325,7 @@ Resources:
   StaxLibLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
+      LayerName: orchestrator-stax-lib-lambda-layer
       Description: >-
         Lambda layer containing dependencies for stax
         orchestrator lambda functions
