@@ -1,9 +1,9 @@
 ---
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
-Description: >
+Description: >-
   Step Functions and lambdas to interact with Stax to CUD (create-update-delete)
-  workloads in your AWS Account(s).
+  workloads and monitor task operations in your AWS Account(s).
 
 Parameters:
   PythonLoggingLevel:
@@ -16,30 +16,94 @@ Parameters:
       - WARNING
       - ERROR
       - CRITICAL
-
-Metadata:
-  AWS::ServerlessRepo::Application:
-    Name: stax-orchestrator
+  DeployWorkloadStateMachine:
+    Type: String
     Description: >-
-      Stax Workloads Orchestrator -
-      Interact with Stax to CUD (create-update-delete)
-      workloads in your AWS Account(s).
-    Author: Versent
-    SpdxLicenseId: Apache-2.0
-    LicenseUrl: LICENSE
-    ReadmeUrl: README.md
-    Labels: ['AWS', 'Stax', 'Serverless', 'Lambda', 'StepFunction']
-    HomePageUrl: https://github.com/Versent/stax-orchestrator.git
-    SemanticVersion: 0.0.1
-    SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
+      Deploy workload state machine to CUD (create-update-delete) workloads.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  DeployWorkloadCloudwatchDashboard:
+    Type: String
+    Description: >-
+      Deploy workload cloudwatch dashboard to view stax orchestrator
+      step function metrics and logs.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  DeployTaskWatcherCloudwatchDashboard:
+    Type: String
+    Description: >-
+      Deploy workload cloudwatch dashboard to view stax orchestrator
+      step function metrics and logs.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  LambdaLogGroupRetentionInDays:
+    Type: Number
+    Description: >-
+      Number of days to retain lambda function logs;
+      applies to all lambda functions in this template
+    AllowedValues:
+      - 1
+      - 3
+      - 5
+      - 7
+      - 14
+      - 30
+      - 60
+      - 90
+      - 120
+      - 150
+      - 180
+      - 365
+      - 400
+      - 545
+      - 731
+      - 1827
+      - 2192
+      - 2557
+      - 2922
+      - 3288
+      - 3653
+    Default: 60
+  EnableStateMachineTracing:
+    Type: String
+    Description: Enable X-Ray tracing for state machines
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  EnableLambdaTracing:
+    Type: String
+    Description: Enable X-Ray tracing for lambda functions
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+
+Conditions:
+  WorkloadStateMachineEnabled: !Equals [!Ref DeployWorkloadStateMachine, "true"]
+  WorkloadCloudwatchDashboardEnabled: !And
+    - !Equals [!Ref DeployWorkloadCloudwatchDashboard, "true"]
+    - Condition: WorkloadStateMachineEnabled
+  TaskWatcherCloudwatchDashboardEnabled: !Equals
+    - !Ref DeployTaskWatcherCloudwatchDashboard
+    - "true"
+  StateMachineTracingEnabled: !Equals [!Ref EnableStateMachineTracing, "true"]
+  LambdaTracingEnabled: !Equals [!Ref EnableLambdaTracing, "true"]
 
 Resources:
   WorkloadStateMachine:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::StateMachine
     Properties:
       DefinitionUri: statemachines/workload.asl.json
       Tracing:
-        Enabled: true
+        Enabled: !If [StateMachineTracingEnabled, true, false]
       DefinitionSubstitutions:
         ValidateInputLambdaArn: !GetAtt ValidateInputLambda.Arn
         CreateWorkloadLambdaArn: !GetAtt CreateWorkloadLambda.Arn
@@ -49,8 +113,12 @@ Resources:
       Role: !GetAtt WorkloadStateMachineRole.Arn
 
   WorkloadStateMachineRole:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::IAM::Role
     Properties:
+      Description: >-
+        Permissions for Stax Orchestrator Workload State Machine to invoke
+        lambdas and start step function executions
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -64,14 +132,16 @@ Resources:
         - PolicyName: WorkloadStateMachinePolicy
           PolicyDocument:
             Statement:
-              - Effect: Allow
+              - Sid: InvokeLambdaPolicy
+                Effect: Allow
                 Action: lambda:InvokeFunction
                 Resource:
                   - !GetAtt ValidateInputLambda.Arn
                   - !GetAtt CreateWorkloadLambda.Arn
                   - !GetAtt UpdateWorkloadLambda.Arn
                   - !GetAtt DeleteWorkloadLambda.Arn
-              - Effect: Allow
+              - Sid: StartStepFunctionExecutionPolicy
+                Effect: Allow
                 Action: states:StartExecution
                 Resource:
                   - !Ref TaskWatcherStateMachine
@@ -81,7 +151,7 @@ Resources:
     Properties:
       DefinitionUri: statemachines/task_watcher.asl.json
       Tracing:
-        Enabled: true
+        Enabled: !If [StateMachineTracingEnabled, true, false]
       DefinitionSubstitutions:
         GetTaskStatusLambdaArn: !GetAtt GetTaskStatusLambda.Arn
       Role: !GetAtt TaskWatcherStateMachineRole.Arn
@@ -89,6 +159,9 @@ Resources:
   TaskWatcherStateMachineRole:
     Type: AWS::IAM::Role
     Properties:
+      Description: >-
+        Permissions for Stax Orchestrator Task Watcher State Machine
+        to assume role and invoke GetTaskStatusLambda
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -102,21 +175,24 @@ Resources:
         - PolicyName: TaskWatcherStateMachinePolicy
           PolicyDocument:
             Statement:
-              - Effect: Allow
+              - Sid: InvokeGetTaskStatusLambdaPolicy
+                Effect: Allow
                 Action: lambda:InvokeFunction
                 Resource:
                   - !GetAtt GetTaskStatusLambda.Arn
 
   ValidateInputLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
-      Description: Validate user input required to create/update workloads
+      Description: >-
+        Validate user input required to create/update/delete workloads
       CodeUri: functions/validate_input/
       Handler: app.lambda_handler
       Runtime: python3.9
       MemorySize: 128
-      Timeout: 20
-      Tracing: Active
+      Timeout: 300
+      Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
       Layers:
         - !Ref StaxLibLayer
       Environment:
@@ -126,20 +202,24 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - AWSXRayDaemonWriteAccess
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   CreateWorkloadLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
-      Description: Invoke Stax Api to create a workload
+      Description: Invoke Stax API to create a workload
       CodeUri: functions/create_workload/
       Handler: app.lambda_handler
       Runtime: python3.9
-      Tracing: Active
-      MemorySize: 256
+      Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
+      MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
-      Timeout: 20
+      Timeout: 300
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
@@ -147,20 +227,24 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - AWSXRayDaemonWriteAccess
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   UpdateWorkloadLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
-      Description: Invoke Stax Api to update a workload
+      Description: Invoke Stax API to update a workload
       CodeUri: functions/update_workload/
       Handler: app.lambda_handler
       Runtime: python3.9
-      Tracing: Active
-      MemorySize: 256
+      Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
+      MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
-      Timeout: 20
+      Timeout: 300
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
@@ -168,20 +252,24 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - AWSXRayDaemonWriteAccess
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   DeleteWorkloadLambda:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Serverless::Function
     Properties:
-      Description: Invoke Stax Api to delete a workload
+      Description: Invoke Stax API to delete a workload
       CodeUri: functions/delete_workload/
       Handler: app.lambda_handler
       Runtime: python3.9
-      Tracing: Active
-      MemorySize: 256
+      Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
+      MemorySize: 128
       Layers:
         - !Ref StaxLibLayer
-      Timeout: 20
+      Timeout: 300
       Environment:
         Variables:
           LOG_LEVEL: !Ref PythonLoggingLevel
@@ -189,7 +277,10 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - AWSXRayDaemonWriteAccess
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   GetTaskStatusLambda:
     Type: AWS::Serverless::Function
@@ -199,8 +290,8 @@ Resources:
       Handler: app.lambda_handler
       Runtime: python3.9
       MemorySize: 128
-      Timeout: 20
-      Tracing: Active
+      Timeout: 300
+      Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
       Layers:
         - !Ref StaxLibLayer
       Environment:
@@ -210,18 +301,26 @@ Resources:
         - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
-        - AWSXRayDaemonWriteAccess
+        - Fn::If:
+            - LambdaTracingEnabled
+            - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+            - !Ref AWS::NoValue
 
   StaxLibLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
-      LayerName: stax-orchestrator-shared-lib-layer
-      ContentUri: lambda_layer
+      Description: >-
+        Lambda layer containing dependencies for stax
+        orchestrator lambda functions
+      LicenseInfo: Available under the Apache license.
+      ContentUri: .
+      CompatibleArchitectures:
+        - arm64
       CompatibleRuntimes:
         - python3.9
       RetentionPolicy: Delete
     Metadata:
-      BuildMethod: python3.9
+      BuildMethod: makefile
       BuildArchitecture: arm64
 
   StaxLibLayerPermission:
@@ -235,12 +334,13 @@ Resources:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       Description: >-
-        Stax Orchestrator Managed Policy
-        for lambdas to use with AWS Resources.
+        Stax Orchestrator Managed Policy for
+        lambda functions to interact with AWS Resources.
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
+          - Sid: AllowGetStaxAccessKeyAndSecretPolicy
+            Effect: Allow
             Action:
               - ssm:GetParameter
             Resource:
@@ -254,11 +354,12 @@ Resources:
     Properties:
       Description: >-
         Stax Orchestrator Managed Policy for
-        step functions to use with AWS Resources.
+        step functions to interact with AWS Resources.
       PolicyDocument:
         Version: 2012-10-17
         Statement:
-          - Effect: Allow
+          - Sid: AllowEventsPutAndDescribePolicy
+            Effect: Allow
             Action:
               - events:PutTargets
               - events:PutRule
@@ -267,50 +368,58 @@ Resources:
               # yamllint disable rule:line-length
               - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:rule/StepFunctionsGetEventsForStepFunctionsExecutionRule
               # yamllint enable rule:line-length
-          - Effect: Allow
-            Action:
-              - xray:PutTraceSegments
-              - xray:PutTelemetryRecords
-              - xray:GetSamplingRules
-              - xray:GetSamplingTargets
-              - xray:GetSamplingStatisticSummaries
-            Resource:
-              - '*'
+          - !If
+            - StateMachineTracingEnabled
+            - Sid: AllowXrayTracingPolicy
+              Effect: Allow
+              Action:
+                - xray:PutTraceSegments
+                - xray:PutTelemetryRecords
+                - xray:GetSamplingRules
+                - xray:GetSamplingTargets
+                - xray:GetSamplingStatisticSummaries
+              Resource:
+                - '*'
+            - Ref: AWS::NoValue
 
   ValidateInputLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${ValidateInputLambda}
-      RetentionInDays: 60
+      RetentionInDays: !Ref LambdaLogGroupRetentionInDays
 
   CreateWorkloadLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${CreateWorkloadLambda}
-      RetentionInDays: 60
+      RetentionInDays: !Ref LambdaLogGroupRetentionInDays
 
   UpdateWorkloadLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${UpdateWorkloadLambda}
-      RetentionInDays: 60
+      RetentionInDays: !Ref LambdaLogGroupRetentionInDays
 
   DeleteWorkloadLambdaLogGroup:
+    Condition: WorkloadStateMachineEnabled
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${DeleteWorkloadLambda}
-      RetentionInDays: 60
+      RetentionInDays: !Ref LambdaLogGroupRetentionInDays
 
   GetTaskStatusLambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub /aws/lambda/${GetTaskStatusLambda}
-      RetentionInDays: 60
+      RetentionInDays: !Ref LambdaLogGroupRetentionInDays
 
-  StaxOrchestratorDashboard:
+  StaxOrchestratorWorkloadDashboard:
+    Condition: WorkloadCloudwatchDashboardEnabled
     Type: AWS::CloudWatch::Dashboard
     Properties:
-      DashboardName: StaxOrchestrator
       # yamllint disable rule:line-length
       DashboardBody: !Sub |
             {
@@ -358,20 +467,6 @@ Resources:
                   }
                 },
                 {
-                  "type": "log",
-                  "x": 10,
-                  "y": 6,
-                  "width": 14,
-                  "height": 3,
-                  "properties": {
-                    "query": "SOURCE '/aws/lambda/${GetTaskStatusLambda}' | fields @message\r\n| filter @message like /ERROR/",
-                    "region": "${AWS::Region}",
-                    "stacked": false,
-                    "title": "Get Task Status Error Logs",
-                    "view": "table"
-                  }
-                },
-                {
                   "type": "metric",
                   "x": 0,
                   "y": 0,
@@ -389,6 +484,50 @@ Resources:
                     "region": "${AWS::Region}",
                     "title": "WorkloadStateMachine Executions",
                     "period": 300
+                  }
+                },
+
+                {
+                  "type": "metric",
+                  "x": 0,
+                  "y": 9,
+                  "width": 10,
+                  "height": 4,
+                  "properties": {
+                      "view": "timeSeries",
+                      "stacked": false,
+                      "metrics": [
+                          [ "AWS/States", "ExecutionsSucceeded", "StateMachineArn", "${WorkloadStateMachine}", {"color": "#2ca02c"} ],
+                          [ ".", "ExecutionsFailed", ".", ".", {"color": "#ff0000"} ]
+                      ],
+                      "region": "${AWS::Region}",
+                      "title": "Workload Operations Success Vs Failures"
+                  }
+                }
+              ]
+            }
+      # yamllint enable rule:line-length
+
+  StaxOrchestratorTaskDashboard:
+    Condition: TaskWatcherCloudwatchDashboardEnabled
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      # yamllint disable rule:line-length
+      DashboardBody: !Sub |
+            {
+              "widgets": [
+                {
+                  "type": "log",
+                  "x": 10,
+                  "y": 6,
+                  "width": 14,
+                  "height": 3,
+                  "properties": {
+                    "query": "SOURCE '/aws/lambda/${GetTaskStatusLambda}' | fields @message\r\n| filter @message like /ERROR/",
+                    "region": "${AWS::Region}",
+                    "stacked": false,
+                    "title": "Get Task Status Error Logs",
+                    "view": "table"
                   }
                 },
                 {
@@ -421,23 +560,6 @@ Resources:
                       "view": "timeSeries",
                       "stacked": false,
                       "metrics": [
-                          [ "AWS/States", "ExecutionsSucceeded", "StateMachineArn", "${WorkloadStateMachine}", {"color": "#2ca02c"} ],
-                          [ ".", "ExecutionsFailed", ".", ".", {"color": "#ff0000"} ]
-                      ],
-                      "region": "${AWS::Region}",
-                      "title": "Workload Operations Success Vs Failures"
-                  }
-                },
-                {
-                  "type": "metric",
-                  "x": 0,
-                  "y": 9,
-                  "width": 10,
-                  "height": 4,
-                  "properties": {
-                      "view": "timeSeries",
-                      "stacked": false,
-                      "metrics": [
                           [ "AWS/States", "ExecutionsSucceeded", "StateMachineArn", "${TaskWatcherStateMachine}", {"color": "#2ca02c"} ],
                           [ ".", "ExecutionsFailed", ".", ".", {"color": "#ff0000"} ]
                       ],
@@ -447,13 +569,14 @@ Resources:
                 }
               ]
             }
-      # yamllint disable rule:line-length
+      # yamllint enable rule:line-length
 
 Outputs:
-  WorkloadArn:
+  WorkloadStateMachineArn:
+    Condition: WorkloadStateMachineEnabled
     Description: Stax workload deployer arn
     Value: !Ref WorkloadStateMachine
 
-  TaskWatcherArn:
+  TaskWatcherStateMachineArn:
     Description: Stax task watcher arn
     Value: !Ref TaskWatcherStateMachine

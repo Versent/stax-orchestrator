@@ -6,7 +6,7 @@ from os import environ
 
 from aws_xray_sdk.core import patch_all, xray_recorder
 
-from stax_orchestrator import StaxOrchestrator
+from src.stax_orchestrator import StaxOrchestrator
 
 logging.getLogger().setLevel(environ.get("LOG_LEVEL", logging.INFO))
 

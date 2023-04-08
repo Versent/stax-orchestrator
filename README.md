@@ -44,6 +44,7 @@ This is an optional deployment approach to allow the flexibility to use a forked
 
 Follow this guide [here](docs/direct_deployment.md) to deploy directly.
 
+* Add a [policy](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-template-publishing-applications.html#:~:text=%7B%0A%20%20%20%20%22Version%22%3A%20%222012,aws%3ASourceAccount%22%3A%20%22123456789012%22%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%5D%0A%7D) to allow AWS's Serverless Service access the bucket to get artifacts.
 ### Deployment using the AWS Serverless Repository
 
 Deployment of the stax-orchestrator can be completed by the AWS Console, AWS CLI or AWS Cloudformation.
@@ -54,4 +55,3 @@ To deploy using AWS Cloudformation, find the serverless application in the AWS S
 ### Using the Stax Orchestrator
 
 Please follow [Use of Stax Orchestrator](./docs/use_of_stax_orchestrator.md) for instruction on how to deploy/delete and update Stax Workloads.
-

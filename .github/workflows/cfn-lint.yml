@@ -1,7 +1,7 @@
 ---
 name: Lint CloudFormation Templates
 
-on: 
+on:
   pull_request:
 
 

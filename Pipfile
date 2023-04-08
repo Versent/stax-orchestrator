@@ -5,17 +5,24 @@ verify_ssl = true
 
 [dev-packages]
 black = "*"
-pylint = "*"
-isort = "*"
-yamllint = "*"
 cfn-lint = "*"
+dill = "*"
+isort = "*"
+pylint = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-mock = "*"
 statelint = "*"
+yamllint = "*"
 
 [packages]
-staxapp = "*"
-boto3 = "*"
-aws-lambda-powertools = "*"
 aws_xray_sdk = "*"
+aws-lambda-powertools = "*"
+boto3 = "*"
+staxapp = "*"
 
 [requires]
 python_version = "3.9"
+
+[scripts]
+create-ssm-parameters = "python examples/create_ssm_parameters.py"
