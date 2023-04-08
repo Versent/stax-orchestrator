@@ -96,7 +96,7 @@ Metadata:
     SpdxLicenseId: Apache-2.0
     LicenseUrl: LICENSE
     ReadmeUrl: README.md
-    Labels: ['AWS', 'Stax', 'Serverless', 'Lambda', 'StepFunction', 'Orchestrator']
+    Labels: ['AWS', 'Stax', 'Serverless', 'Lambda', 'StepFunction']
     HomePageUrl: https://github.com/Versent/stax-orchestrator.git
     SemanticVersion: 0.1.6
     SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
