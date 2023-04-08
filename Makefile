@@ -74,6 +74,6 @@ package-app: ## Package and upload application artifacts to the stax deployment 
 	sam package --output-template-file template.packaged.yml --s3-bucket $(ARTIFACT_BUCKET_NAME)
 
 publish-app: build-app package-app ## Publish Stax Orchestrator Application to Serverless Application Repository
-	sam publish --template template.packaged.yml --region $(AWS_REGION) --semantic-version 0.0.1
+	sam publish --template template.packaged.yml --region $(AWS_REGION) --semantic-version $(TAGGED_VERSION)
 
 .PHONY: clean build-app build-StaxLibLayer deploy-stax-orchestrator invoke-create-workload-lambda-locally format lint shell install-dependencies install-dev-dependencies help package-app publish-app test lint-yaml lint-statemachine

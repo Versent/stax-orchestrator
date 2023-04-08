@@ -9,7 +9,10 @@ env:
   TAGGED_VERSION: ${{github.ref_name}}
 
 # yamllint disable-line rule:truthy
-on: push
+on:
+  push:
+    tags:
+      - "*"
 
 jobs:
   # deploy:
@@ -36,7 +39,7 @@ jobs:
           make install-dependencies
 
       - name: Configure AWS credentials from Innovation account
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v2
         with:
           # yamllint disable-line rule:line-length
           role-to-assume: "${{ secrets.ROLE_ARN }}"

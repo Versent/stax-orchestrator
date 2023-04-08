@@ -98,7 +98,7 @@ Metadata:
     ReadmeUrl: README.md
     Labels: ['AWS', 'Stax', 'Serverless', 'Lambda', 'StepFunction', 'Orchestrator']
     HomePageUrl: https://github.com/Versent/stax-orchestrator.git
-    SemanticVersion: 0.0.1
+    SemanticVersion: 0.1.6
     SourceCodeUrl: https://github.com/Versent/stax-orchestrator.git
 
 Conditions:
