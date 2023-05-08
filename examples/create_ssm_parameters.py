@@ -8,9 +8,6 @@ def create_ssm_parameter(ssm_client: boto3.client, name: str, value: str, type: 
         name (str): Name of the SSM Parameter
         value (str): Value to associate with the SSM Parameter
         type (str): Type of the SSM Parameter - valid values are 'String', 'StringList', 'SecureString'
-
-    Returns:
-        str: Response from the SSM Parameter creation
     """
     ssm_client.put_parameter(
         Name=name,
@@ -20,10 +17,7 @@ def create_ssm_parameter(ssm_client: boto3.client, name: str, value: str, type: 
     )
 
 def create_orchestrator_stax_parameters() -> None:
-    """Create the orchestrator stax parameters
-
-    Returns:
-        str: Response from the SSM Parameter creation
+    """Creates required stax orchestrator SSM parameters
     """
     ssm_client = boto3.client('ssm')
 
