@@ -30,11 +30,9 @@ This serverless application deploys the following resources in your AWS Account,
 * Task Watcher Step Function - Monitors the lifecycle of a workload task in progress and reports with a success/failure to Create Workload Steop Function.
     * Get Task Status Lambda - Invokes Stax Api to get the status of a workload task.
 
-
 ### Pre-deployment requirements
 
 The orchestrator requires API keys to be in the AWS account, follow [pre-deployment steps](docs/pre_deployment.md) to complete this.
-
 
 ### Local Development and Deployment (optional)
 
