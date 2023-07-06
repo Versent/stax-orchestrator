@@ -50,7 +50,34 @@ Follow this guide [here](docs/direct_deployment.md) to deploy directly.
 Deployment of the stax-orchestrator can be completed by the AWS Console, AWS CLI or AWS Cloudformation.
 Please following [Deploying Applications](https://docs.aws.amazon.com/serverlessrepo/latest/devguide/serverlessrepo-consuming-applications.html) to use th AWS Console or AWS CLI.
 
-To deploy using AWS Cloudformation, find the serverless application in the AWS Serverless Repository in your AWS account and click "copy Cloudformation template".
+To deploy using AWS Cloudformation, find the serverless application (name: `stax-orchestrator`) in the AWS Serverless Repository in your AWS account and click "copy Cloudformation template".
+
+Example:
+~~~yaml
+Resources:
+  staxorchestrator:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location:
+        ApplicationId: arn:aws:serverlessrepo:ap-southeast-2:754868638956:applications/stax-orchestrator
+        SemanticVersion: 0.1.7 # any specific version required
+      Parameters: 
+        # Deploy workload cloudwatch dashboard to view stax orchestrator step function metrics and logs.
+        # DeployTaskWatcherCloudwatchDashboard: 'false' # Uncomment to override default value
+        # Deploy workload cloudwatch dashboard to view stax orchestrator step function metrics and logs.
+        # DeployWorkloadCloudwatchDashboard: 'false' # Uncomment to override default value
+        # Deploy workload state machine to CUD (create-update-delete) workloads.
+        # DeployWorkloadStateMachine: 'false' # Uncomment to override default value
+        # Enable X-Ray tracing for lambda functions
+        # EnableLambdaTracing: 'false' # Uncomment to override default value
+        # Enable X-Ray tracing for state machines
+        # EnableStateMachineTracing: 'false' # Uncomment to override default value
+        # Number of days to retain lambda function logs; applies to all lambda functions in this template
+        # LambdaLogGroupRetentionInDays: '60' # Uncomment to override default value
+        # Python logging level for Lambda functions
+        # PythonLoggingLevel: 'INFO' # Uncomment to override default value  
+      
+~~~
 
 ### Using the Stax Orchestrator
 

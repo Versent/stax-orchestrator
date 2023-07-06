@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: |
+  Maintainers Only: Create a S3 bucket used for hosting the artifacts in the AWS SAM package process
+
+
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      AccessControl: Private
+      LifecycleConfiguration:
+        Rules:
+          - Id: BasicLifeCycle
+            Status: Enabled
+            Transitions:
+              - TransitionInDays: 1
+                StorageClass: INTELLIGENT_TIERING
+
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+                Service: serverlessrepo.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub arn:aws:s3:::${ArtifactBucket}/*
+            Condition:
+                StringEquals:
+                    aws:SourceAccount: !Ref AWS::AccountId
+
+          -
+            Sid: AllowSSLRequestsOnly
+            Action: s3:*
+            Effect: Deny
+            Resource:
+              - !Sub ${ArtifactBucket.Arn}
+              - !Sub ${ArtifactBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+            Principal: "*"
+
+
+  ArtifactBucketArn:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: /orchestrator/stax/artifact/bucket/name
+      Description: Bucket name used for artifact storage
+      Type: String
+      Value: !Ref ArtifactBucket

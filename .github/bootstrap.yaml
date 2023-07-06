@@ -1,0 +1,159 @@
+# Reference - https://github.com/marketplace/actions/configure-aws-credentials-action-for-github-actions
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Maintainers Only: Used to provision access for Github actions to deploy the serverless application
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Default: "Versent"
+  RepositoryName:
+    Type: String
+    Description: Github Repo name that has permissions to deploy this stack
+  OIDCProviderArn:
+    Type: String
+    Description: arn:aws:for the GitHub OIDC Provider.
+    Default: ""
+
+
+Conditions:
+  CreateOIDCProvider: !Equals
+    - !Ref OIDCProviderArn
+    - ""
+
+Resources:
+
+  GithubAssumeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: Allow github actions to assume this role to deploy resources to AWS
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRoleWithWebIdentity
+            Principal:
+              Federated: !If
+                - CreateOIDCProvider
+                - !Ref GithubOidc
+                - !Ref OIDCProviderArn
+            Condition:
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub repo:${GitHubOrg}/${RepositoryName}:*
+      Policies:
+        - PolicyName: GithubActionsPolicy
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/orchestrator/stax/*
+              - Effect: Allow
+                Action:
+                  - lambda:GetFunction
+                  - lambda:CreateFunction
+                  - lambda:DeleteFunction
+                  - lambda:GetFunctionConfiguration
+                  - lambda:AddPermission
+                  - lambda:RemovePermission
+                  - lambda:InvokeFunction
+                  - lambda:UpdateFunctionCode
+                  - lambda:UpdateFunctionConfiguration
+                  - lambda:ListTags
+                  - lambda:TagResource
+                  - lambda:UntagResource
+                  - lambda:PutFunctionEventInvokeConfig
+                  - lambda:DeleteFunctionEventInvokeConfig
+                Resource:
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:orchestrator-stax-*
+              - Effect: Allow
+                Action:
+                  - lambda:DeleteLayerVersion
+                  - lambda:GetLayerVersion
+                  - lambda:PublishLayerVersion
+                Resource:
+                  - !Sub arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:orchestrator-stax-*
+                  - !Sub arn:aws:lambda:*:*:layer:orchestrator-stax-*
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
+                Resource:
+                  - !Sub arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/orchestrator-stax-*
+                  - !Sub arn:aws:cloudformation:${AWS::Region}:aws:transform/*
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject*
+                  - s3:CreateMultipartUpload
+                Resource:
+                  - !Sub arn:aws:s3:::versent-stax-orchestrator-*
+              - Effect: Allow
+                Action:
+                  - iam:PassRole
+                  - iam:AttachRolePolicy
+                  - iam:CreateRole
+                  - iam:GetPolicy
+                  - iam:GetRole
+                  - iam:GetRolePolicy
+                  - iam:CreatePolicy
+                  - iam:DeleteRole
+                  - iam:DetachRolePolicy
+                  - iam:UpdateRole
+                  - iam:DeleteRolePolicy
+                  - iam:PutRolePolicy
+                  - iam:CreatePolicyVersion
+                  - iam:DeletePolicyVersion
+                  - iam:DeletePolicy
+                  - iam:ListPolicyVersions
+                  - iam:TagRole
+                  - iam:UntagRole
+                Resource:
+                  - !Sub arn:aws:iam::${AWS::AccountId}:role/orchestrator-stax-*
+                  - !Sub arn:aws:iam::${AWS::AccountId}:policy/orchestrator-stax-*
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:DeleteLogGroup
+                  - logs:PutLogEvents
+                  - logs:TagResource
+                  - logs:PutRetentionPolicy
+                  - logs:DeleteRetentionPolicy
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orchestrator-stax-*
+              - Effect: Allow
+                Action:
+                  - states:DescribeStateMachine
+                  - states:DeleteStateMachine
+                  - states:ListExecutions
+                  - states:UpdateStateMachine
+                  - states:CreateStateMachine
+                  - states:ListTagsForResource
+                  - states:TagResource
+                  - states:UntagResource
+                  - states:StartExecution
+                Resource:
+                  - arn:aws:states:*:*:stateMachine:orchestrator-stax-*
+              - Effect: Allow
+                Action:
+                  - serverlessrepo:CreateApplication
+                Resource: !Sub arn:aws:serverlessrepo:${AWS::Region}:${AWS::AccountId}:applications/*
+              - Effect: Allow
+                Action:
+                  - serverlessrepo:CreateApplicationVersion
+                  - serverlessrepo:UpdateApplication
+                Resource: !Sub arn:aws:serverlessrepo:${AWS::Region}:${AWS::AccountId}:applications/stax-orchestrator
+
+  GithubOidc:
+    Type: AWS::IAM::OIDCProvider
+    Condition: CreateOIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+Outputs:
+  GithubAssumeRoleArn:
+    Value: !GetAtt GithubAssumeRole.Arn
