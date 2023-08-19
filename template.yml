@@ -84,10 +84,19 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
-  AlertsHttpEndpoint:
+  EnableAlerting:
     Type: String
     Description: >-
-      HTTP endpoint to send alerts to.
+      Get alerts for failed step function executions, also provide
+      https endpoint or email address to send alerts to.
+    Default: "false"
+    AllowedValues:
+      - "true"
+      - "false"
+  AlertsHttpsEndpoint:
+    Type: String
+    Description: >-
+      HTTPS endpoint to send alerts to.
     Default: ""
   AlertsEmail:
     Type: String
@@ -120,12 +129,15 @@ Conditions:
     - "true"
   StateMachineTracingEnabled: !Equals [!Ref EnableStateMachineTracing, "true"]
   LambdaTracingEnabled: !Equals [!Ref EnableLambdaTracing, "true"]
-  AlertHttpEndpointProvided: !Not [!Equals [!Ref AlertsHttpEndpoint, ""]]
-  SubscribeHttpEndpoint: !And
+  AlertHttpsEndpointProvided: !Not [!Equals [!Ref AlertsHttpsEndpoint, ""]]
+  EnableAlerting: !Equals [!Ref EnableAlerting, "true"]
+  SubscribeHttpsEndpoint: !And
+    - Condition: EnableAlerting
     - Condition: WorkloadStateMachineEnabled
-    - Condition: AlertHttpEndpointProvided
+    - Condition: AlertHttpsEndpointProvided
   AlertEmailProvided: !Not [!Equals [!Ref AlertsEmail, ""]]
   SubscribeEmail: !And
+    - Condition: EnableAlerting
     - Condition: WorkloadStateMachineEnabled
     - Condition: AlertEmailProvided
 
@@ -609,12 +621,12 @@ Resources:
     Type: AWS::SNS::Topic
 
   HttpEndpointSubscription:
-    Condition: SubscribeHttpEndpoint
+    Condition: SubscribeHttpsEndpoint
     Type: AWS::SNS::Subscription
     Properties:
-      Protocol: http
+      Protocol: https
       TopicArn: !Ref AlertsTopic
-      Endpoint: !Ref AlertsHttpEndpoint
+      Endpoint: !Ref AlertsHttpsEndpoint
 
   EmailSubscription:
     Condition: SubscribeEmail
