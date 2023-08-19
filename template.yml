@@ -87,9 +87,10 @@ Parameters:
   EnableAlerting:
     Type: String
     Description: >-
-      Get alerts for failed step function executions, also provide
-      https endpoint or email address to send alerts to.
-    Default: "false"
+      Get alerts for failed step function executions; alerts on
+      failed workload deployments. Provide https endpoint or email
+      address to send alerts to.
+    Default: "true"
     AllowedValues:
       - "true"
       - "false"
