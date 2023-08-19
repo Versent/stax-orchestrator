@@ -84,6 +84,16 @@ Parameters:
     AllowedValues:
       - "true"
       - "false"
+  AlertsHttpEndpoint:
+    Type: String
+    Description: >-
+      HTTP endpoint to send alerts to.
+    Default: ""
+  AlertsEmail:
+    Type: String
+    Description: >-
+      Email address to send alerts to.
+    Default: ""
 
 Metadata:
   AWS::ServerlessRepo::Application:
@@ -110,6 +120,27 @@ Conditions:
     - "true"
   StateMachineTracingEnabled: !Equals [!Ref EnableStateMachineTracing, "true"]
   LambdaTracingEnabled: !Equals [!Ref EnableLambdaTracing, "true"]
+  AlertHttpEndpointProvided: !Not [!Equals [!Ref AlertsHttpEndpoint, ""]]
+  SubscribeHttpEndpoint: !And
+    - Condition: WorkloadStateMachineEnabled
+    - Condition: AlertHttpEndpointProvided
+  AlertEmailProvided: !Not [!Equals [!Ref AlertsEmail, ""]]
+  SubscribeEmail: !And
+    - Condition: WorkloadStateMachineEnabled
+    - Condition: AlertEmailProvided
+
+Globals:
+  Function:
+    Runtime: python3.11
+    MemorySize: 128
+    Timeout: 300
+    Environment:
+      Variables:
+        LOG_LEVEL: !Ref PythonLoggingLevel
+    Layers:
+      - !Ref StaxLibLayer
+    Architectures:
+      - arm64
 
 Resources:
   WorkloadStateMachine:
@@ -204,17 +235,7 @@ Resources:
         Validate user input required to create/update/delete workloads
       CodeUri: functions/validate_input/
       Handler: app.lambda_handler
-      Runtime: python3.9
-      MemorySize: 128
-      Timeout: 300
       Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
-      Layers:
-        - !Ref StaxLibLayer
-      Environment:
-        Variables:
-          LOG_LEVEL: !Ref PythonLoggingLevel
-      Architectures:
-        - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
         - Fn::If:
@@ -229,17 +250,7 @@ Resources:
       Description: Invoke Stax API to create a workload
       CodeUri: functions/create_workload/
       Handler: app.lambda_handler
-      Runtime: python3.9
       Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
-      MemorySize: 128
-      Layers:
-        - !Ref StaxLibLayer
-      Timeout: 300
-      Environment:
-        Variables:
-          LOG_LEVEL: !Ref PythonLoggingLevel
-      Architectures:
-        - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
         - Fn::If:
@@ -254,17 +265,7 @@ Resources:
       Description: Invoke Stax API to update a workload
       CodeUri: functions/update_workload/
       Handler: app.lambda_handler
-      Runtime: python3.9
       Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
-      MemorySize: 128
-      Layers:
-        - !Ref StaxLibLayer
-      Timeout: 300
-      Environment:
-        Variables:
-          LOG_LEVEL: !Ref PythonLoggingLevel
-      Architectures:
-        - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
         - Fn::If:
@@ -279,17 +280,7 @@ Resources:
       Description: Invoke Stax API to delete a workload
       CodeUri: functions/delete_workload/
       Handler: app.lambda_handler
-      Runtime: python3.9
       Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
-      MemorySize: 128
-      Layers:
-        - !Ref StaxLibLayer
-      Timeout: 300
-      Environment:
-        Variables:
-          LOG_LEVEL: !Ref PythonLoggingLevel
-      Architectures:
-        - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
         - Fn::If:
@@ -303,17 +294,7 @@ Resources:
       Description: Get status of a workload task
       CodeUri: functions/get_task_status/
       Handler: app.lambda_handler
-      Runtime: python3.9
-      MemorySize: 128
-      Timeout: 300
       Tracing: !If [LambdaTracingEnabled, Active, !Ref AWS::NoValue]
-      Layers:
-        - !Ref StaxLibLayer
-      Environment:
-        Variables:
-          LOG_LEVEL: !Ref PythonLoggingLevel
-      Architectures:
-        - arm64
       Policies:
         - !Ref StaxOrchestratorLambdaPolicy
         - Fn::If:
@@ -333,7 +314,7 @@ Resources:
       CompatibleArchitectures:
         - arm64
       CompatibleRuntimes:
-        - python3.9
+        - python3.11
       RetentionPolicy: Delete
     Metadata:
       BuildMethod: makefile
@@ -587,12 +568,74 @@ Resources:
             }
       # yamllint enable rule:line-length
 
+  FailedWorkloadStateMachineEventsRule:
+    Condition: WorkloadStateMachineEnabled
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Trigger SNS topic when WorkloadStateMachine fails
+      Targets:
+        - Arn: !Ref AlertsTopic
+          Id: FailedWorkloadStateMachineEventsRule
+      EventPattern:
+        source:
+          - aws.states
+        detail-type:
+          - Step Functions Execution Status Change
+        detail:
+          status:
+            - FAILED
+          stateMachineArn:
+            - !Ref WorkloadStateMachine
+
+  AlertsTopicPolicy:
+    Condition: WorkloadStateMachineEnabled
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Id: AlertsTopicPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: AllowEventsServiceToPublishToTopic
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref AlertsTopic
+      Topics:
+        - !Ref AlertsTopic
+
+  AlertsTopic:
+    Condition: WorkloadStateMachineEnabled
+    Type: AWS::SNS::Topic
+
+  HttpEndpointSubscription:
+    Condition: SubscribeHttpEndpoint
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: http
+      TopicArn: !Ref AlertsTopic
+      Endpoint: !Ref AlertsHttpEndpoint
+
+  EmailSubscription:
+    Condition: SubscribeEmail
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      TopicArn: !Ref AlertsTopic
+      Endpoint: !Ref AlertsEmail
+
 Outputs:
   WorkloadStateMachineArn:
     Condition: WorkloadStateMachineEnabled
-    Description: Stax workload deployer arn
+    Description: Stax orchestrator workload deployment step function arn
     Value: !Ref WorkloadStateMachine
 
   TaskWatcherStateMachineArn:
-    Description: Stax task watcher arn
+    Description: Stax orchestrator task watcher step function arn
     Value: !Ref TaskWatcherStateMachine
+
+  AlertsTopicArn:
+    Condition: WorkloadStateMachineEnabled
+    Description: >-
+      Stax orchestrator SNS topic arn to subscribe to for alert notifications
+    Value: !Ref AlertsTopic
