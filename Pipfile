@@ -20,9 +20,11 @@ aws_xray_sdk = "*"
 aws-lambda-powertools = "*"
 boto3 = "*"
 staxapp = "*"
+# https://stackoverflow.com/questions/76667202/aws-lambda-function-cant-find-module
+jsonschema = "==4.17.3"
 
 [requires]
-python_version = "3.9"
+python_version = "3.11"
 
 [scripts]
 create-ssm-parameters = "python examples/create_ssm_parameters.py"

@@ -18,7 +18,7 @@ The Serverless Application Model Command Line Interface (SAM CLI) is an extensio
 To use the Stax Orchestrator Application, you need the following tools:
 
 * SAM CLI - [Install the SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* [Python 3.9 installed](https://www.python.org/downloads/)
+* [Python 3.11 installed](https://www.python.org/downloads/)
 * Docker - [Install Docker community edition](https://hub.docker.com/search/?type=edition&offering=community)
 * [Make](https://www.gnu.org/software/make/manual/make.html)
 * Workload Deployment Bucket (See Readme's section #Stax Deployment Bucket)
