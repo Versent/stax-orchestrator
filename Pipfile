@@ -21,7 +21,7 @@ aws-lambda-powertools = "*"
 boto3 = "*"
 staxapp = "*"
 # https://stackoverflow.com/questions/76667202/aws-lambda-function-cant-find-module
-jsonschema = "==4.17.3"
+jsonschema = "==4.19.0"
 
 [requires]
 python_version = "3.11"
