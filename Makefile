@@ -70,6 +70,9 @@ deploy-stax-orchestrator: clean build-app package-app ## Deploy Stax Orchestrato
 		--s3-bucket $(ARTIFACT_BUCKET_NAME)
 	@make clean
 
+deploy-stax-orchestrator-app-from-sar: ## Deploy Stax Orchestrator from Serverless Application Repository
+	pipenv run python3 examples/deploy_stax_orchestrator_from_sar.py
+
 package-app: ## Package and upload application artifacts to the stax deployment bucket
 	sam package --output-template-file template.packaged.yml --s3-bucket $(ARTIFACT_BUCKET_NAME)
 
