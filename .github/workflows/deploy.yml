@@ -19,7 +19,7 @@ jobs:
   Deploy:
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.11.4"]
     runs-on: ubuntu-latest
     environment: innovation
     # These permissions are needed to interact
