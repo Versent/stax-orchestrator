@@ -1,25 +1,24 @@
 ---
 name: Publish to the Serverless Repository
 
-concurrency:
-  group: production
-  cancel-in-progress: true
+# concurrency:
+#   group: production
+#   cancel-in-progress: true
 
 env:
   TAGGED_VERSION: ${{github.ref_name}}
 
 # yamllint disable-line rule:truthy
-on:
-  push:
-    tags:
-      - "*"
+on: push
+    # tags:
+    #   - "*"
 
 jobs:
   # deploy:
   Deploy:
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.11.4"]
     runs-on: ubuntu-latest
     environment: innovation
     # These permissions are needed to interact
