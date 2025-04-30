@@ -1,4 +1,10 @@
-# Stax Orchestrator
+# ARCHIVED - Stax Orchestrator
+
+## Workloads
+
+With workloads being used by less customers, we've made the decision to no longer maintain this repo.
+
+## Purpose
 
 This application deploys step functions into your account that you can use to interact with [Stax](https://www.stax.io/) to CUD (create-update-delete) workloads in your AWS Account(s).
 
